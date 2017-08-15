@@ -1,14 +1,35 @@
 @{
+    # 2013 or 2016:
     SPVersion = "2016"
-    SPEdition = "Enterprise"
+    #For future use
     SPCU = "2017 April"
+    #For future use
     SPLanguagePacks = "Swedish"
-    SPServices = ""
+    #For future use
+    SPAccessServices = $true
+    #For future use
+    SPMultitenancy = $true
     DomainName = "SP2016Ent.local"
     #15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
     DCMachineName = "SP2016Entdc01"
     #15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
     SP2016EntDevMachineName = "SP2016Entsp01"
+    #name restriction: 15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
+    #2013 roles: AD, SQL, WFE, BATCH, DistributedCache, SearchQuery, SearchCrawl, OWA, WFM, Addins
+    #2016 roles: AD, SQL, WFE, Application, DistributedCache, SearchQuery, SearchCrawl, OOS, WFM, Addins
+    Machines = @(
+        @{
+            Name = "SP2013Ent01dc01"
+            Roles = "AD"
+            Memory = 0.5
+        }
+        @{
+            Name = "SP2013Ent01sp01"
+            Roles = "SQL", "WFE", "BATCH", "DistributedCache", "SearchQuery", "SearchCrawl"
+            Memory = 14
+        }
+    )
+    Subnet = "192.168.0.0"
     DomainControllerIP = "192.168.0.4"
     SearchIndexDirectory = "c:\SPSearchIndex"
     SPProductKey = "NQGJR-63HC8-XCRQH-MYVCH-3J3QR"
@@ -38,4 +59,7 @@
     SPVisitorGroupName = "SP Visitors"
     SPPassphrase = "123$%^qweRTY"
     SQLPass = "P@ssw0rd"
+    SPDatabaseServer = "SP2013Ent01sp01"
+    SPDatabaseAlias = "SPDB"
+    SPSiteCollectionHostName = "SP2013Ent01sp01.westeurope.cloudapp.azure.com"
 }
