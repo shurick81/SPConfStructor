@@ -1,4 +1,9 @@
 @{
+    SPVersion = "2016"
+    SPEdition = "Enterprise"
+    SPCU = "2017 April"
+    SPLanguagePacks = "Swedish"
+    SPServices = ""
     DomainName = "SP2016Ent.local"
     #15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
     DCMachineName = "SP2016Entdc01"
