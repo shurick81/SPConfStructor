@@ -1,10 +1,10 @@
 @{
     # 2013 or 2016:
-    SPVersion = "2016"
+    SPVersion = "2013"
     #For future use
     SPCU = "2017 April"
     #For future use
-    SPLanguagePacks = "Swedish"
+    SPLanguagePacks = @("Swedish")
     #For future use
     SPAccessServices = $true
     #For future use
@@ -21,15 +21,17 @@
         @{
             Name = "SP2013Ent01dc01"
             Roles = "AD"
-            Memory = 0.5
+            Memory = 1.5
+            DiskSize = 30
         }
         @{
             Name = "SP2013Ent01sp01"
             Roles = "SQL", "WFE", "BATCH", "DistributedCache", "SearchQuery", "SearchCrawl"
             Memory = 14
+            DiskSize = 120
         }
     )
-    Subnet = "192.168.0.0"
+    SubnetIpAddress = "192.168.0.0"
     DomainControllerIP = "192.168.0.4"
     SearchIndexDirectory = "c:\SPSearchIndex"
     SPProductKey = "NQGJR-63HC8-XCRQH-MYVCH-3J3QR"

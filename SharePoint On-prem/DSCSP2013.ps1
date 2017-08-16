@@ -1,4 +1,4 @@
-Configuration SP2013EntDevEnv
+Configuration SP2013Ent
 {
     param(
         $configParameters
@@ -17,9 +17,9 @@ Configuration SP2013EntDevEnv
     $SPSiteCollectionHostName = $configParameters.SPSiteCollectionHostName;
 
     $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
-    $webAppHostName = "SP2016_01.$DomainName";
+    $webAppHostName = "SP2013_01.$DomainName";
 
-    # examining, generatig and requesting credentials
+    # examining, generating and requesting credentials
         if ( !$DomainAdminCredential )
         {
             if ( $domainAdminUserName )
@@ -297,7 +297,7 @@ Configuration SP2013EntDevEnv
             Name                    = "RootWebApp"
             ApplicationPool         = "All Web Application"
             ApplicationPoolAccount  = $SPWebAppPoolAccountCredential.UserName
-            Url                     = "http://SP2016_01.bizspark-sap2.local"
+            Url                     = "http://$webAppHostName"
             DatabaseName            = "SP_Content_01"
             AuthenticationMethod    = "NTLM"
             InstallAccount          = $SPInstallAccountCredential
@@ -586,10 +586,11 @@ Configuration SP2013EntDevEnv
         } 
     }
 }
+<#
 $configParameters = Import-PowershellDataFile configparemeters.psd1;
 $SP2016EntDevMachineName = $configParameters.SP2016EntDevMachineName
 $configurationData = @{ AllNodes = @(
     @{ NodeName = $SP2016EntDevMachineName; PSDscAllowPlainTextPassword = $True }
 ) }
-SP2016EntDevEnv -ConfigurationData $configurationData -ConfigParameters $configParameters
-
+SP2013EntDevEnv -ConfigurationData $configurationData -ConfigParameters $configParameters
+#>

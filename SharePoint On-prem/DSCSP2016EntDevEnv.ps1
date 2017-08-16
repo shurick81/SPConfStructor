@@ -14,11 +14,12 @@ Configuration SP2016EntDevEnv
     $SPPassPhrase = $configParameters.SPPassPhrase;
     $SQLPass = $configParameters.SQLPass;
     $searchIndexDirectory = $configParameters.searchIndexDirectory;
+    $SPSiteCollectionHostName = $configParameters.SPSiteCollectionHostName;
 
-    $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) )
-    $siteCollectionHostName = "sp2016entdev.$DomainName"
+    $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
+    $webAppHostName = "SP2016_01.$DomainName";
 
-    # examining, generatig and requesting credentials
+    # examining, generating and requesting credentials
         if ( !$DomainAdminCredential )
         {
             if ( $domainAdminUserName )
@@ -190,7 +191,7 @@ Configuration SP2016EntDevEnv
         
         xHostsFile WAHostEntry
         {
-            HostName  = "SP2016_01.bizspark-sap2.local"
+            HostName  = "$webAppHostName"
             IPAddress = "127.0.0.1"
             Ensure    = "Present"
         }
@@ -288,7 +289,7 @@ Configuration SP2016EntDevEnv
             Name                    = "RootWebApp"
             ApplicationPool         = "All Web Application"
             ApplicationPoolAccount  = $SPWebAppPoolAccountCredential.UserName
-            Url                     = "http://SP2016_01.bizspark-sap2.local"
+            Url                     = "http://$webAppHostName"
             DatabaseName            = "SP_Content_01"
             AuthenticationMethod    = "NTLM"
             InstallAccount          = $SPInstallAccountCredential
@@ -302,7 +303,7 @@ Configuration SP2016EntDevEnv
 
         SPCacheAccounts CacheAccounts
         {
-            WebAppUrl            = "http://SP2016_01.bizspark-sap2.local"
+            WebAppUrl            = "http://$webAppHostName"
             SuperUserAlias       = "$shortDomainName\$($configParameters.SPOCSuperUser)"
             SuperReaderAlias     = "$shortDomainName\$($configParameters.SPOCSuperReader)"
             InstallAccount       = $SPInstallAccountCredential
@@ -326,7 +327,7 @@ Configuration SP2016EntDevEnv
 
         SPSite RootPathSite
         {
-            Url             = "http://SP2016_01.bizspark-sap2.local"
+            Url             = "http://$webAppHostName"
             OwnerAlias      = $SPInstallAccountCredential.UserName
             InstallAccount  = $SPInstallAccountCredential
             DependsOn       = "[SPWebApplication]RootWebApp"
@@ -337,7 +338,7 @@ Configuration SP2016EntDevEnv
             Url                         = "http://$siteCollectionHostName"
             OwnerAlias                  = $SPInstallAccountCredential.UserName
             Template                    = "STS#0"
-            HostHeaderWebApplication    = "http://SP2016_01.bizspark-sap2.local"
+            HostHeaderWebApplication    = "http://$webAppHostName"
             InstallAccount              = $SPInstallAccountCredential
             DependsOn                   = "[SPSite]RootPathSite"
         }
@@ -477,7 +478,7 @@ Configuration SP2016EntDevEnv
             Url                         = "http://$siteCollectionHostName/sites/searchcenter"
             OwnerAlias                  = $SPInstallAccountCredential.UserName
             Template                    = "SRCHCEN#0"
-            HostHeaderWebApplication    = "http://SP2016_01.bizspark-sap2.local"
+            HostHeaderWebApplication    = "http://$webAppHostName"
             InstallAccount              = $SPInstallAccountCredential
             DependsOn                   = "[SPSite]RootPathSite"
         }
@@ -519,7 +520,7 @@ Configuration SP2016EntDevEnv
             ServiceAppName       = "Search Service Application"
             Name                 = "Local SharePoint sites"
             ContentSourceType    = "SharePoint"
-            Addresses            = @("http://SP2016_01.bizspark-sap2.local")
+            Addresses            = @("http://$webAppHostName")
             CrawlSetting         = "CrawlEverything"
             ContinuousCrawl      = $true
             FullSchedule         = MSFT_SPSearchCrawlSchedule{
@@ -539,7 +540,7 @@ Configuration SP2016EntDevEnv
             Url                         = "http://$siteCollectionHostName/sites/my"
             OwnerAlias                  = $SPInstallAccountCredential.UserName
             Template                    = "SPSMSITEHOST#0"
-            HostHeaderWebApplication    = "http://SP2016_01.bizspark-sap2.local"
+            HostHeaderWebApplication    = "http://$webAppHostName"
             InstallAccount              = $SPInstallAccountCredential
             DependsOn                   = "[SPSite]RootPathSite"
         }

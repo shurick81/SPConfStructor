@@ -17,7 +17,7 @@ Configuration SPDomainDevEnv
 
     $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) )
 
-    # examining, generatig and requesting credentials
+    # examining, generating and requesting credentials
         if ( !$DomainAdminCredential )
         {
             if ( $domainAdminUserName )
@@ -136,8 +136,10 @@ Configuration SPDomainDevEnv
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DscResource -ModuleName xRemoteDesktopAdmin
     Import-DscResource -ModuleName xActiveDirectory
+    
+    $DCMachineNames = $configParameters.Machines | ? { $_.Roles -contains "AD" } | % { $_.Name }
 
-    Node $DCMachineName
+    Node $DCMachineNames
     {
         LocalConfigurationManager
         {
@@ -279,10 +281,11 @@ Configuration SPDomainDevEnv
     }
 }
 
+<#
 $configParameters = Import-PowershellDataFile configparemeters.psd1;
 $DCMachineName = $configParameters.DCMachineName;
 $configurationData = @{ AllNodes = @(
     @{ NodeName = $configParameters.DCMachineName; PSDscAllowPlainTextPassword = $True }
 ) }
 SPDomainDevEnv -ConfigurationData $configurationData -ConfigParameters $configParameters
-
+#>

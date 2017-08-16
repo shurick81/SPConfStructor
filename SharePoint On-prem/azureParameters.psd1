@@ -3,4 +3,5 @@
     ResourceGroupLocation = "westeurope"
     LocalAdminUserName = "splocaladmin"
     LocalAdminPassword = "123$%^qweRTY"
+    AzureAutomationPassword = "123$%^qweRTY"
 }
