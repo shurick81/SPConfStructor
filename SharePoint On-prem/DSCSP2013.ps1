@@ -125,7 +125,6 @@ Configuration SP2013Ent
     Import-DSCResource -Module xSystemSecurity -Name xIEEsc
     Import-DSCResource -ModuleName xDSCDomainJoin
     Import-DSCResource -ModuleName xNetworking
-    Import-DSCResource -ModuleName xSQLServer -Name xSQLServerSetup
     Import-DSCResource -ModuleName xSQLServer -Name xSQLServerAlias
     Import-DscResource -ModuleName xCredSSP
     Import-DSCResource -ModuleName SharePointDSC
@@ -144,21 +143,7 @@ Configuration SP2013Ent
             AddressFamily   = "IPv4"
             InterfaceAlias  = "Ethernet 3"
         }
-               
-        xFireWall SQLFirewallRule
-        {
-            Name        = "AllowSQLConnection"
-            DisplayName = "Allow SQL Connection"
-            Group       = "DSC Rules"
-            Ensure      = "Present"
-            Enabled     = "True"
-            Profile     = ("Domain")
-            Direction   = "InBound"
-            LocalPort   = ("1433")
-            Protocol    = "TCP"
-            Description = "Firewall rule to allow SQL communication"
-        }
-        
+                
         xDSCDomainJoin DomainJoin
         {
             Domain      = $DomainName
@@ -203,30 +188,7 @@ Configuration SP2013Ent
             IPAddress = "127.0.0.1"
             Ensure    = "Present"
         }
-        
-        xSQLServerSetup SQLSetup
-        {
-            InstanceName        = "MSSQLServer"
-            SourcePath          = "C:\Install\SQL 2016"
-            Features            = "SQLENGINE,FULLTEXT"
-            InstallSharedDir    = "C:\Program Files\Microsoft SQL Server"
-            SecurityMode        = 'SQL'
-            SAPwd               = $SQLPassCredential
-            SQLSysAdminAccounts = $SPInstallAccountCredential.UserName
-            DependsOn           = "[Group]AdminGroup"
-        }
-        
-        Package SSMS
-        {
-            Ensure      = "Present"
-            Name        = "SMS-Setup-ENU"
-            Path        = "C:\Install\SQL SMS 17.1\SSMS-Setup-ENU.exe"
-            Arguments   = "/install /passive /norestart"
-            ProductId   = "b636c6f4-2183-4b76-b5a0-c8d6422df9f4"
-            Credential  = $SPInstallAccountCredential
-            DependsOn   = "[Group]AdminGroup"
-        }
-        
+                
         SPInstallPrereqs SP2016Prereqs
         {
             InstallerPath   = "C:\Install\SharePoint 2016\Prerequisiteinstaller.exe"

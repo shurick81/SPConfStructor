@@ -97,7 +97,7 @@ $configParameters.Machines | % {
         if ( $_.DiskSize -le 30 ) { $skus = "2016-Datacenter-smalldisk" } else { $skus = "2016-Datacenter" }
         if ( $_.Roles -contains "AD" ) { $vmCredential = $DomainAdminCredential } else { $vmCredential = $LocalAdminCredential }
         $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize | `
-            Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $DomainAdminCredential | `
+            Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
             Set-AzureRmVMSourceImage -PublisherName MicrosoftWindowsServer -Offer WindowsServer `
             -Skus $skus -Version latest | Add-AzureRmVMNetworkInterface -Id $nic.Id
         New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
