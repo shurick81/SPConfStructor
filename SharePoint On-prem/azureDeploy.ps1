@@ -2,6 +2,7 @@ Get-Date
 $azureParameters = Import-PowershellDataFile azureParameters.psd1;
 $configParameters = Import-PowershellDataFile mainParemeters.psd1;
 
+Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (0) -id 0 -CurrentOperation "Resource group promotion";
 
 $domainAdminUserName = $configParameters.DomainAdminUserName;
 if ( !$DomainAdminCredential )
@@ -26,14 +27,19 @@ if ( !$LocalAdminCredential )
     }
 }
 
-#Login-AzureRmAccount
 $resourceGroupName = $azureParameters.ResourceGroupName;
+$resourceGroupLocation = $azureParameters.ResourceGroupLocation;
+$storageAccountNameLong = ( $resourceGroupName + "StdStor" );
+$storageAccountName = $storageAccountNameLong.Substring( 0, [System.Math]::Min( 24, $storageAccountNameLong.Length ) ).ToLower();
+
+#Login-AzureRmAccount
+
+
 $resourceGroup = Get-AzureRmResourceGroup $resourceGroupName -ErrorAction Ignore;
 if ( !$resourceGroup )
 {
-    $resourceGroup = New-AzureRmResourceGroup -Name $resourceGroupName -Location $azureParameters.ResourceGroupLocation;
+    $resourceGroup = New-AzureRmResourceGroup -Name $resourceGroupName -Location $resourceGroupLocation;
 }
-$resourceGroupLocation = $resourceGroup.Location;
 
 $vnetName = ( $resourceGroupName + "VNet");
 $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name $vnetName -ErrorAction Ignore;
@@ -45,8 +51,6 @@ if ( !$vnet )
 }
 $subnetId = $vnet.Subnets[0].Id;
 
-$storageAccountNameLong = ( $resourceGroupName + "StdStor" );
-$storageAccountName = $storageAccountNameLong.Substring( 0, [System.Math]::Min( 24, $storageAccountNameLong.Length ) ).ToLower();
 $storageAccount = Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName -Name $storageAccountName -ErrorAction Ignore;
 if ( !$storageAccount )
 {
@@ -54,8 +58,20 @@ if ( !$storageAccount )
         -SkuName "Standard_LRS" -Kind "Storage" | Out-Null;
 }
 
+$automationAccountName = ( $resourceGroupName + "Automation" );
+$automationAccount = Get-AzureRmAutomationAccount -ResourceGroupName $resourceGroupName -Name $automationAccountName -ErrorAction Ignore;
+if ( !$automationAccount )
+{
+    New-AzureRmAutomationAccount -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -Name $automationAccountName | Out-Null;
+    $subscriptionId = (Get-AzureRmSubscription)[0].id;
+    .\New-RunAsAccount.ps1 -ResourceGroup $resourceGroupName -AutomationAccountName $automationAccountName -SubscriptionId $subscriptionId -ApplicationDisplayName "$resourceGroupName Automation" -SelfSignedCertPlainPassword $azureParameters.AzureAutomationPassword -CreateClassicRunAsAccount $true
+}
+
+Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (1) -id 1;
+
 $configParameters.Machines | % {
     $machineName = $_.Name;
+    Write-Progress -Activity 'Machines creation' -PercentComplete (0) -ParentId 1 -CurrentOperation $machineName;
     $publicIpName = ( $machineName + "IP" );
     $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName -Name $publicIpName -ErrorAction Ignore;
     if ( !$pip )
@@ -94,7 +110,9 @@ $configParameters.Machines | % {
         #Check machine sizes: Get-AzureRmVMSize -Location westeurope
         if ( $_.Memory -le 1.5 ) { $VMSize = "Basic_A1" } else { $VMSize = "Standard_D11_v2" }
         # Check SKUS: Get-AzureRmVMImageSku -Location westeurope -PublisherName MicrosoftWindowsServer -Offer WindowsServer
-        if ( $_.DiskSize -le 30 ) { $skus = "2016-Datacenter-smalldisk" } else { $skus = "2016-Datacenter" }
+        $skusPrefix = "2016"
+        if ( $_.WinVersion -eq "2012R2" ) { $skusPrefix = "2012-R2" }
+        if ( $_.DiskSize -le 30 ) { $skus = "$skusPrefix-Datacenter-smalldisk" } else { $skus = "$skusPrefix-Datacenter" }
         if ( $_.Roles -contains "AD" ) { $vmCredential = $DomainAdminCredential } else { $vmCredential = $LocalAdminCredential }
         $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize | `
             Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
@@ -104,19 +122,16 @@ $configParameters.Machines | % {
     }
 }
 
-$automationAccountName = ( $resourceGroupName + "Automation" );
-$automationAccount = Get-AzureRmAutomationAccount -ResourceGroupName $resourceGroupName -Name $automationAccountName -ErrorAction Ignore;
-if ( !$automationAccount )
-{
-    New-AzureRmAutomationAccount -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -Name $automationAccountName | Out-Null;
-    $subscriptionId = (Get-AzureRmSubscription)[0].id;
-    .\New-RunAsAccount.ps1 -ResourceGroup $resourceGroupName -AutomationAccountName $automationAccountName -SubscriptionId $subscriptionId -ApplicationDisplayName "$resourceGroupName Automation" -SelfSignedCertPlainPassword $azureParameters.AzureAutomationPassword -CreateClassicRunAsAccount $true
-}
 
-$configurationData = @{ AllNodes = [System.Collections.ArrayList]@() }
-$configurationData.AllNodes.Add( @{ NodeName = "teet"; PSDscAllowPlainTextPassword = $True } )
+$SPVersion = $configParameters.SPVersion;
+if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016" }
+
+
+<#
+Write-Progress -Activity 'Domain controller preparation' -PercentComplete (5)
+$ADMachines = $configParameters.Machines | ? { $_.Roles -contains "AD" }
 $configurationDataString = "@{ AllNodes = @( ";
-$strings = $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
+$strings = $ADMachines | % {
     '@{ NodeName = "' + $_.Name + '"; PSDscAllowPlainTextPassword = $True }';
 }
 
@@ -124,36 +139,141 @@ $configurationDataString += $strings -join ", ";
 $configurationDataString += ") }";
 $tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
 $configurationDataString | Set-Content -Path $tempConfigDataFilePath
-$configFileName = "DSCSPDomainDevEnv.ps1";
+
+$configName = "DomainPrepare"
+$configFileName = "DSC$configName.ps1";
 Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force;
 Remove-Item $tempConfigDataFilePath;
 
 $configurationArguments = @{ configParameters=$configParameters }
 
-$configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
-    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName "SPDomainDevEnv" -Verbose -Force -ConfigurationArgument $configurationArguments;
+$ADMachines | % {
+    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
 }
+
+
+Write-Progress -Activity 'SQL server preparation' -PercentComplete (10)
+$SQLMachines = $configParameters.Machines | ? { $_.Roles -contains "SQL" }
+$configurationDataString = "@{ AllNodes = @( ";
+$strings = $SQLMachines | % {
+    '@{ NodeName = "' + $_.Name + '"; PSDscAllowPlainTextPassword = $True }';
+}
+
+$configurationDataString += $strings -join ", "; 
+$configurationDataString += ") }";
+$tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
+$configurationDataString | Set-Content -Path $tempConfigDataFilePath
+
+$configName = "SQL$($SQLVersion)Prepare";
+$configFileName = "DSC$configName.ps1";
+Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force;
+Remove-Item $tempConfigDataFilePath;
+
+$configurationArguments = @{ configParameters=$configParameters }
+
+$SQLMachines | % {
+    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
+}
+#>
+
+
+Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (20) -id 1;
+$SPMachines = $configParameters.Machines | ? { $_.Roles -contains "SharePoint" }
+$configurationDataString = "@{ AllNodes = @( ";
+$strings = $SPMachines | % {
+    '@{ NodeName = "' + $_.Name + '"; PSDscAllowPlainTextPassword = $True }';
+}
+
+$configurationDataString += $strings -join ", "; 
+$configurationDataString += ") }";
+$tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
+$configurationDataString | Set-Content -Path $tempConfigDataFilePath
+
+$configName = "SP$($SPVersion)Prepare";
+$configFileName = "DSC$configName.ps1";
+Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force;
+Remove-Item $tempConfigDataFilePath;
+
+$configurationArguments = @{ configParameters=$configParameters }
+
+$SPMachines | % {
+    Write-Progress -Activity 'SharePoint server preparation' -PercentComplete (0) -CurrentOperation $_.Name -ParentId 1;
+    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
+}
+
+
+#Domain deploying
 <#
-#Use an existing Azure Virtual Machine, 'DscDemo1'
-$demoVM = Get-AzureVM DscDemo1
+$configName = "SPDomain"
+$configFileName = "DSC$configName.ps1";
+Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force;
+Remove-Item $tempConfigDataFilePath;
 
-#Publish the configuration script into user storage.
-Publish-AzureVMDscConfiguration -ConfigurationPath ".\IisInstall.ps1" -StorageContext $storageContext -Verbose -Force
+$configurationArguments = @{ configParameters=$configParameters }
 
-#Set the VM to run the DSC configuration
-Set-AzureVMDscExtension -VM $demoVM -ConfigurationArchive "IisInstall.ps1.zip" -StorageContext $storageContext -ConfigurationName "IisInstall" -Verbose
-
-#Update the configuration of an Azure Virtual Machine
-$demoVM | Update-AzureVM -Verbose
-
-#check on status
-Get-AzureVMDscExtensionStatus -VM $demovm -Verbose
-
-$azureCompilationParameters = @{
-    ConfigParameters = $configParameters
+$ADMachines | % {
+    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
 }
 
-$configParameters.Machines | % {
-    Start-AzureRmAutomationDscCompilationJob -ResourceGroupName "development" -AutomationAccountName "lab2-automation" -ConfigurationName "SharePointDevelopmentEnvironment" -ConfigurationData configurationdata.psd1 -Parameters $azureCompilationParameters
+#Joining machines to domain
+$domainClientMachines = $configParameters.Machines | ? { !( $_.Roles -contains "AD" ) } | % { $_.Name }
+$configurationDataString = "@{ AllNodes = @( ";
+$strings = $domainClientMachines | % {
+    '@{ NodeName = "' + $_.Name + '"; PSDscAllowPlainTextPassword = $True }';
+}
+
+$configurationDataString += $strings -join ", "; 
+$configurationDataString += ") }";
+$tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
+$configurationDataString | Set-Content -Path $tempConfigDataFilePath
+
+$configName = "DomainClient"
+$configFileName = "DSC$configName.ps1";
+Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force;
+Remove-Item $tempConfigDataFilePath;
+
+$configurationArguments = @{ configParameters=$configParameters }
+
+$adminMachines = $configParameters.Machines | ? { $_.Roles -contains "Admin" }
+$adminMachines | % {
+    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
+}
+#>
+
+<#
+$SPMachines = $configParameters.Machines | ? { $_.Roles -contains "SharePoint" }
+$SPMachines | % {
+    $configurationDataString = '@{ AllNodes = @( @{ NodeName = "' + $_.Name + '"; PSDscAllowPlainTextPassword = $True } ) }';
+    $tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
+    $configurationDataString | Set-Content -Path $tempConfigDataFilePath
+
+    if ( $configParameters.SPVersion -eq "2013" ) { $configFileName = "DSCSP2013Prepare.ps1" } else { $configFileName = "DSCSP2016Prepare.ps1" }
+    Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force;
+    Remove-Item $tempConfigDataFilePath;
+    $configurationArguments = @{ configParameters=$configParameters }
+    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName "SPDomain" -Verbose -Force -ConfigurationArgument $configurationArguments;
+
+    $configFileName = "DSCDomainClient.ps1"
+    Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force;
+    Remove-Item $tempConfigDataFilePath;
+    $configurationArguments = @{ configParameters=$configParameters }
+    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName "SPDomain" -Verbose -Force -ConfigurationArgument $configurationArguments;
+}
+
+$configurationMachines = $SPMachines | ? { $_.Roles -contains "Configuration" }
+$configurationMachines | % {
+    $configurationDataString = "@{ AllNodes = @( ";
+    $strings = $SPMachines | % {
+        '@{ NodeName = "' + $_.Name + '"; PSDscAllowPlainTextPassword = $True }';
+    }
+
+    $configurationDataString += $strings -join ", "; 
+    $configurationDataString += ") }";
+
+    if ( $configParameters.SPVersion -eq "2013" ) { $configFileName = "DSCSP2013.ps1" } else { $configFileName = "DSCSP2016.ps1" }
+    Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force;
+    Remove-Item $tempConfigDataFilePath;
+    $configurationArguments = @{ configParameters=$configParameters }
+    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName "SPDomain" -Verbose -Force -ConfigurationArgument $configurationArguments;
 }
 #>

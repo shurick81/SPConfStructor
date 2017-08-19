@@ -10,31 +10,57 @@
     #For future use
     SPMultitenancy = $true
     DomainName = "SP2016Ent.local"
-    #15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
-    DCMachineName = "SP2016Entdc01"
-    #15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
-    SP2016EntDevMachineName = "SP2016Entsp01"
     #name restriction: 15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
-    #2013 roles: AD, SQL, WFE, BATCH, DistributedCache, SearchQuery, SearchCrawl, OWA, WFM, Addins
-    #2016 roles: AD, SQL, WFE, Application, DistributedCache, SearchQuery, SearchCrawl, OOS, WFM, Addins
+    #roles: AD, SQL, WFE, Application, DistributedCache, SearchQuery, SearchCrawl, OOS, WFM, Addins, Admin, Code, Client
+    #2013 software requirements: https://technet.microsoft.com/en-us/library/cc262485.aspx?f=255&MSPPError=-2147217396
+    #Default WinVersion is 2016
     Machines = @(
         @{
             Name = "SP2013Ent01dc01"
             Roles = "AD"
             Memory = 1.5
             DiskSize = 30
+            WinVersion = ""
+            Image = ""
+        }
+        @{
+            Name = "SP2013Ent01adm"
+            Roles = "Admin"
+            Memory = 1.5
+            DiskSize = 30
+            WinVersion = ""
+            Image = ""
+        }
+        @{
+            Name = "SP2013Ent01sq01"
+            Roles = "SQL"
+            Memory = 14
+            DiskSize = 120
+            WinVersion = "2012R2"
+            Image = ""
         }
         @{
             Name = "SP2013Ent01sp01"
-            Roles = "SQL", "WFE", "BATCH", "DistributedCache", "SearchQuery", "SearchCrawl"
+            Roles = "SharePoint", "WFE", "Application", "DistributedCache", "SearchQuery", "SearchCrawl", "Code"
             Memory = 14
             DiskSize = 120
+            #is 2012 acceptable?
+            WinVersion = "2012"
+            Image = ""
         }
+        <#@{
+            Name = "SP2013Ent01cl01"
+            Roles = "Client"
+            Memory = 1.5
+            DiskSize = 30
+            WinVersion = "10"
+            Image = ""
+        }#>
     )
     SubnetIpAddress = "192.168.0.0"
     DomainControllerIP = "192.168.0.4"
     SearchIndexDirectory = "c:\SPSearchIndex"
-    SPProductKey = "NQGJR-63HC8-XCRQH-MYVCH-3J3QR"
+    SPProductKey = "NQTMW-K63MQ-39G6H-B2CH9-FRDWJ"
     DomainAdminUserName = "dauser1"
     DomainAdminPassword = "123$%^qweRTY"
     DomainSafeModeAdministratorPassword = "123$%^qweRTY"

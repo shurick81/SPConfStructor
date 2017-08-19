@@ -1,4 +1,4 @@
-Configuration SP2013Ent
+Configuration SP2013
 {
     param(
         $configParameters
@@ -12,7 +12,6 @@ Configuration SP2013Ent
     $SPSearchServiceAccountUserName = $configParameters.SPSearchServiceAccountUserName;
     $SPCrawlerAccountUserName = $configParameters.SPCrawlerAccountUserName;
     $SPPassPhrase = $configParameters.SPPassPhrase;
-    $SQLPass = $configParameters.SQLPass;
     $searchIndexDirectory = $configParameters.searchIndexDirectory;
     $SPSiteCollectionHostName = $configParameters.SPSiteCollectionHostName;
 
@@ -50,17 +49,6 @@ Configuration SP2013Ent
                 $SPPassphraseCredential = New-Object System.Management.Automation.PSCredential( "anyidentity", $securedPassword )
             } else {
                 $SPPassphraseCredential = Get-Credential -Message "Enter any user name and enter pass phrase in password field";
-            }
-        }
-
-        if ( !$SQLPassCredential )
-        {
-            if ( $SQLPass )
-            {
-                $securedPassword = ConvertTo-SecureString $SQLPass -AsPlainText -Force
-                $SQLPassCredential = New-Object System.Management.Automation.PSCredential( "anyidentity", $securedPassword )
-            } else {
-                $SQLPassCredential = Get-Credential -Message "Enter any user name and enter SQL SA password";
             }
         }
 
@@ -122,7 +110,6 @@ Configuration SP2013Ent
     # credentials are ready
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DSCResource -Module xSystemSecurity -Name xIEEsc
     Import-DSCResource -ModuleName xDSCDomainJoin
     Import-DSCResource -ModuleName xNetworking
     Import-DSCResource -ModuleName xSQLServer -Name xSQLServerAlias
@@ -130,25 +117,25 @@ Configuration SP2013Ent
     Import-DSCResource -ModuleName SharePointDSC
     Import-DscResource -ModuleName xWebAdministration
 
-    Node $SP2016EntDevMachineName
+    $SPMachines = $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % { $_.Name }
+
+    Node $SPMachines
     {
-        LocalConfigurationManager
+        if ( $configParameters.DomainControllerIP )
         {
-            RebootNodeIfNeeded = $true;
-        }
-        
-        xDNSServerAddress DNSClient
-        {
-            Address         = $configParameters.DomainControllerIP
-            AddressFamily   = "IPv4"
-            InterfaceAlias  = "Ethernet 3"
+            xDNSServerAddress DNSClient
+            {
+                Address         = $configParameters.DomainControllerIP
+                AddressFamily   = "IPv4"
+                InterfaceAlias  = "Ethernet 3"
+            }
         }
                 
         xDSCDomainJoin DomainJoin
         {
             Domain      = $DomainName
             Credential  = $DomainAdminCredential
-            DependsOn   = @("[xDNSServerAddress]DNSClient","[Registry]LoopBackRegistry")
+            DependsOn   = "[xDNSServerAddress]DNSClient"
         }
         
         #Local group
@@ -158,21 +145,6 @@ Configuration SP2013Ent
             Credential          = $DomainAdminCredential
             MembersToInclude    = "$shortDomainName\$($configParameters.SPAdminGroupName)"
             DependsOn           = "[xDSCDomainJoin]DomainJoin"
-        }
-        
-        Registry LoopBackRegistry
-        {
-            Ensure      = "Present"  # You can also set Ensure to "Absent"
-            Key         = "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa"
-            ValueName   = "DisableLoopbackCheck"
-            ValueType   = "DWORD"
-            ValueData   = "1"
-        }
-
-        xIEEsc DisableIEEsc
-        {
-            IsEnabled   = $false
-            UserRole    = "Administrators"
         }
         
         xHostsFile WAHostEntry
@@ -189,25 +161,11 @@ Configuration SP2013Ent
             Ensure    = "Present"
         }
                 
-        SPInstallPrereqs SP2016Prereqs
-        {
-            InstallerPath   = "C:\Install\SharePoint 2016\Prerequisiteinstaller.exe"
-            OnlineMode      = $true
-        }
-        
-        SPInstall InstallSharePoint 
-        { 
-            Ensure      = "Present"
-            BinaryDir   = "C:\Install\SharePoint 2016"
-            ProductKey  = $configParameters.SPProductKey
-            DependsOn   = "[SPInstallPrereqs]SP2016Prereqs"
-        }
-
         xSQLServerAlias SPDBAlias
         {
-            Ensure               = 'Present'
-            Name                 = $configParameters.SPDatabaseAlias
-            ServerName           = $configParameters.SPDatabaseServer
+            Ensure      = 'Present'
+            Name        = $configParameters.SPDatabaseAlias
+            ServerName  = $configParameters.SPDatabaseServer
         }
 
         xCredSSP CredSSPServer
@@ -232,26 +190,46 @@ Configuration SP2013Ent
             Passphrase                = $SPPassphraseCredential
             FarmAccount               = $SPFarmAccountCredential
             RunCentralAdmin           = $true
-            CentralAdministrationPort = 7777
-            ServerRole                = "SingleServerFarm"
+            CentralAdministrationPort = 50555
             InstallAccount            = $SPInstallAccountCredential
-            DependsOn                 = @( "[xFireWall]SQLFirewallRule", "[SPInstall]InstallSharePoint", "[xSQLServerSetup]SQLSetup", "[Group]AdminGroup", "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[xSQLServerAlias]SPDBAlias" )
+            DependsOn                 = @( "[Group]AdminGroup", "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[xSQLServerAlias]SPDBAlias" )
         }
 
+        #this needs to be troubleshooted
+        Registry LocalZone
+        {
+            Ensure                  = "Present"
+            Key                     = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\$DomainName\sp2016entdev"
+            ValueName               = "HTTP"
+            ValueType               = "DWORD"
+            ValueData               = "1"
+            PsDscRunAsCredential    = $SPInstallAccountCredential
+        }
+    }
+
+    $WFEMachines = $configParameters.Machines | ? { $_.Roles -contains "WFE" } | % { $_.Name }
+    
+    Node $WFEMachines
+    {
+        #WFE service instances
+    }
+
+    $ApplicationMachines = $configParameters.Machines | ? { $_.Roles -contains "Application" } | % { $_.Name }
+
+    Node $ApplicationMachines
+    {
         SPDiagnosticLoggingSettings ApplyDiagnosticLogSettings
         {
             LogPath         = "C:\SPLogs\ULS"
             LogSpaceInGB    = 10
             InstallAccount  = $SPInstallAccountCredential
-            DependsOn       = "[SPFarm]Farm"
         }
-        
+
         SPManagedAccount ApplicationWebPoolAccount
         {
             AccountName     = $SPWebAppPoolAccountCredential.UserName
             Account         = $SPWebAppPoolAccountCredential
             InstallAccount  = $SPInstallAccountCredential
-            DependsOn       = "[SPFarm]Farm"
         }
 
         SPWebApplication RootWebApp
@@ -264,11 +242,6 @@ Configuration SP2013Ent
             AuthenticationMethod    = "NTLM"
             InstallAccount          = $SPInstallAccountCredential
             DependsOn               = "[SPManagedAccount]ApplicationWebPoolAccount"
-        }
-
-        xIISLogging RootWebAppIISLogging
-        {
-            LogPath = "C:\SPLogs\IIS"
         }
 
         SPCacheAccounts CacheAccounts
@@ -313,17 +286,6 @@ Configuration SP2013Ent
             DependsOn                   = "[SPSite]RootPathSite"
         }
         
-        #this needs to be troubleshooted
-        Registry LocalZone
-        {
-            Ensure                  = "Present"
-            Key                     = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\$DomainName\sp2016entdev"
-            ValueName               = "HTTP"
-            ValueType               = "DWORD"
-            ValueData               = "1"
-            PsDscRunAsCredential    = $SPInstallAccountCredential
-        }
-
         SPManagedAccount SharePointServicesPoolAccount
         {
             AccountName     = $SPServicesAccountCredential.UserName
@@ -337,7 +299,7 @@ Configuration SP2013Ent
             Name            = "SharePoint Services App Pool"
             ServiceAccount  = $SPServicesAccountCredential.UserName
             InstallAccount  = $SPInstallAccountCredential
-            DependsOn       = "[SPManagedAccount]SearchServicePoolAccount"
+            DependsOn       = "[SPManagedAccount]SharePointServicesPoolAccount"
         }
 
         SPAccessServiceApp AccessServices
@@ -427,22 +389,6 @@ Configuration SP2013Ent
             DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
         }
 
-        SPManagedAccount SearchServicePoolAccount
-        {
-            AccountName     = $SPSearchServiceAccountCredential.UserName
-            Account         = $SPSearchServiceAccountCredential
-            InstallAccount  = $SPInstallAccountCredential
-            DependsOn       = "[SPFarm]Farm"
-        }
-
-        SPServiceAppPool SearchServiceAppPool
-        {
-            Name            = "SharePoint Search App Pool"
-            ServiceAccount  = $SPSearchServiceAccountCredential.UserName
-            InstallAccount  = $SPInstallAccountCredential
-            DependsOn       = "[SPManagedAccount]SearchServicePoolAccount"
-        }
-
         SPSite SearchCenterSite
         {
             Url                         = "http://$SPSiteCollectionHostName/sites/searchcenter"
@@ -452,59 +398,6 @@ Configuration SP2013Ent
             InstallAccount              = $SPInstallAccountCredential
             DependsOn                   = "[SPSite]RootPathSite"
         }
-
-        SPSearchServiceApp EnterpriseSearchServiceApplication
-        {
-            Name                        = "Search Service Application";
-            Ensure                      = "Present";
-            ApplicationPool             = "SharePoint Search App Pool";
-            SearchCenterUrl             = "http://$SPSiteCollectionHostName/sites/searchcenter/pages";
-            DatabaseName                = "SP_Search";
-            DefaultContentAccessAccount = $SPCrawlerAccountCredential;
-            InstallAccount              = $SPInstallAccountCredential
-            DependsOn                   = @("[SPUsageApplication]UsageApplication","[SPServiceAppPool]SearchServiceAppPool","[SPSite]SearchCenterSite")
-        }
-
-        File "IndexFolder"
-        {
-            DestinationPath = $searchIndexDirectory
-            Type            = "Directory"
-        }
-
-        SPSearchTopology SearchTopology
-        {
-            ServiceAppName          = "Search Service Application";
-            ContentProcessing       = @($NodeName);
-            AnalyticsProcessing     = @($NodeName);
-            IndexPartition          = @($NodeName);
-            Crawler                 = @($NodeName);
-            Admin                   = @($NodeName);
-            QueryProcessing         = @($NodeName);
-            FirstPartitionDirectory = $searchIndexDirectory;
-            InstallAccount          = $SPInstallAccountCredential
-            DependsOn = @("[SPSearchServiceApp]EnterpriseSearchServiceApplication","[File]IndexFolder");
-        }
-
-        SPSearchContentSource WebsiteSource
-        {
-            ServiceAppName       = "Search Service Application"
-            Name                 = "Local SharePoint sites"
-            ContentSourceType    = "SharePoint"
-            Addresses            = @("http://$webAppHostName")
-            CrawlSetting         = "CrawlEverything"
-            ContinuousCrawl      = $true
-            FullSchedule         = MSFT_SPSearchCrawlSchedule{
-                                    ScheduleType = "Weekly"
-                                    CrawlScheduleDaysOfWeek = @("Monday", "Wednesday", "Friday")
-                                    StartHour = "3"
-                                    StartMinute = "0"
-                                   }
-            Priority             = "Normal"
-            Ensure               = "Present"
-            InstallAccount       = $SPInstallAccountCredential
-            DependsOn            = "[SPSearchTopology]SearchTopology"
-        }
-        
         SPSite MySite
         {
             Url                         = "http://$SPSiteCollectionHostName/sites/my"
@@ -547,12 +440,29 @@ Configuration SP2013Ent
             DependsOn       = "[SPServiceAppPool]SharePointServicesAppPool"
         } 
     }
+
+    $DistributedCacheMachines = $configParameters.Machines | ? { $_.Roles -contains "DistributedCache" } | % { $_.Name }
+    
+    Node $DistributedCacheMachines
+    {
+        #DC configuration
+    }
+
+    $SearchQueryMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchQuery" } | % { $_.Name }
+    
+    Node $SearchQueryMachines
+    {
+        File "IndexFolder"
+        {
+            DestinationPath = $searchIndexDirectory
+            Type            = "Directory"
+        }
+    }
+
+    $SearchCrawlerMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchCrawl" } | % { $_.Name }
+
+    Node $SearchCrawlerMachines
+    {
+        #search instances?
+    }
 }
-<#
-$configParameters = Import-PowershellDataFile configparemeters.psd1;
-$SP2016EntDevMachineName = $configParameters.SP2016EntDevMachineName
-$configurationData = @{ AllNodes = @(
-    @{ NodeName = $SP2016EntDevMachineName; PSDscAllowPlainTextPassword = $True }
-) }
-SP2013EntDevEnv -ConfigurationData $configurationData -ConfigParameters $configParameters
-#>

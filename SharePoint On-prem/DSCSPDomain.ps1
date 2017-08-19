@@ -1,4 +1,4 @@
-Configuration SPDomainDevEnv
+Configuration SPDomain
 {
     param(
         $configParameters
@@ -280,12 +280,3 @@ Configuration SPDomainDevEnv
         }
     }
 }
-
-<#
-$configParameters = Import-PowershellDataFile configparemeters.psd1;
-$DCMachineName = $configParameters.DCMachineName;
-$configurationData = @{ AllNodes = @(
-    @{ NodeName = $configParameters.DCMachineName; PSDscAllowPlainTextPassword = $True }
-) }
-SPDomainDevEnv -ConfigurationData $configurationData -ConfigParameters $configParameters
-#>
