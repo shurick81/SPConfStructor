@@ -1,7 +1,8 @@
 Configuration DomainClient
 {
     param(
-        $configParameters
+        $configParameters,
+        $systemParameters
     )
     $DomainName = $configParameters.DomainName;
     $domainAdminUserName = $configParameters.DomainAdminUserName;
@@ -30,11 +31,11 @@ Configuration DomainClient
 
     Node $DomainClientMachines
     {        
-        if ( $configParameters.DomainControllerIP )
+        if ( $systemParameters.DomainControllerIP )
         {
             xDNSServerAddress DNSClient
             {
-                Address         = $configParameters.DomainControllerIP
+                Address         = $systemParameters.DomainControllerIP
                 AddressFamily   = "IPv4"
                 InterfaceAlias  = "Ethernet 3"
             }

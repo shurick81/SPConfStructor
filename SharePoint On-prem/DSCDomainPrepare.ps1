@@ -1,16 +1,11 @@
 Configuration DomainPrepare
 {
-    param(
-        $configParameters
-    )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DscResource -ModuleName xRemoteDesktopAdmin
     Import-DscResource -ModuleName xActiveDirectory
     
-    $DCMachineNames = $configParameters.Machines | ? { $_.Roles -contains "AD" } | % { $_.Name }
-
-    Node $DCMachineNames
+    Node $AllNodes.NodeName
     {
 
         LocalConfigurationManager

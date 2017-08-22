@@ -19,6 +19,7 @@ Configuration SP2013
     $webAppHostName = "SP2013_01.$DomainName";
 
     # examining, generating and requesting credentials
+    
         if ( !$DomainAdminCredential )
         {
             if ( $domainAdminUserName )
@@ -121,31 +122,6 @@ Configuration SP2013
 
     Node $SPMachines
     {
-        if ( $configParameters.DomainControllerIP )
-        {
-            xDNSServerAddress DNSClient
-            {
-                Address         = $configParameters.DomainControllerIP
-                AddressFamily   = "IPv4"
-                InterfaceAlias  = "Ethernet 3"
-            }
-        }
-                
-        xDSCDomainJoin DomainJoin
-        {
-            Domain      = $DomainName
-            Credential  = $DomainAdminCredential
-            DependsOn   = "[xDNSServerAddress]DNSClient"
-        }
-        
-        #Local group
-        Group AdminGroup
-        {
-            GroupName           = "Administrators"
-            Credential          = $DomainAdminCredential
-            MembersToInclude    = "$shortDomainName\$($configParameters.SPAdminGroupName)"
-            DependsOn           = "[xDSCDomainJoin]DomainJoin"
-        }
         
         xHostsFile WAHostEntry
         {
@@ -192,7 +168,7 @@ Configuration SP2013
             RunCentralAdmin           = $true
             CentralAdministrationPort = 50555
             InstallAccount            = $SPInstallAccountCredential
-            DependsOn                 = @( "[Group]AdminGroup", "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[xSQLServerAlias]SPDBAlias" )
+            DependsOn                 = @( "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[xSQLServerAlias]SPDBAlias" )
         }
 
         #this needs to be troubleshooted
@@ -211,7 +187,14 @@ Configuration SP2013
     
     Node $WFEMachines
     {
-        #WFE service instances
+
+        #WFE service instances. Options: https://www.powershellgallery.com/packages/SharePointDSC/1.6.0.0/Content/DSCResources%5CMSFT_SPServiceInstance%5CMSFT_SPServiceInstance.psm1
+        SPServiceInstance ManagedMetadataServiceInstance
+        {
+            Name            = "Access Database Service 2010"
+            InstallAccount  = $SPInstallAccountCredential
+        }
+
     }
 
     $ApplicationMachines = $configParameters.Machines | ? { $_.Roles -contains "Application" } | % { $_.Name }

@@ -137,13 +137,6 @@ Configuration SP2016EntDevEnv
             RebootNodeIfNeeded = $true;
         }
         
-        xDNSServerAddress DNSClient
-        {
-            Address         = $configParameters.DomainControllerIP
-            AddressFamily   = "IPv4"
-            InterfaceAlias  = "Ethernet 3"
-        }
-               
         xFireWall SQLFirewallRule
         {
             Name        = "AllowSQLConnection"
@@ -156,13 +149,6 @@ Configuration SP2016EntDevEnv
             LocalPort   = ("1433")
             Protocol    = "TCP"
             Description = "Firewall rule to allow SQL communication"
-        }
-        
-        xDSCDomainJoin DomainJoin
-        {
-            Domain      = $DomainName
-            Credential  = $DomainAdminCredential
-            DependsOn   = @("[xDNSServerAddress]DNSClient","[Registry]LoopBackRegistry")
         }
         
         #Local group

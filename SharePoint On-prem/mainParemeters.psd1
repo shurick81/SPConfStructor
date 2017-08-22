@@ -1,19 +1,20 @@
 @{
-    # 2013 or 2016:
     SPVersion = "2013"
-    #For future use
-    SPCU = "2017 April"
-    #For future use
+    SPServicePack = "SP1"
+    SPCumulativeUpdate = "2017April"
+    SPLanguage = "English"
     SPLanguagePacks = @("Swedish")
-    #For future use
-    SPAccessServices = $true
-    #For future use
-    SPMultitenancy = $true
+    SPServices = @{
+        AccessService2010 = $true
+        AccessService = $true
+    }
+    SPMultitenancy = $false
     DomainName = "SP2016Ent.local"
-    #name restriction: 15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
+    #machine name restriction: 15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
     #roles: AD, SQL, WFE, Application, DistributedCache, SearchQuery, SearchCrawl, OOS, WFM, Addins, Admin, Code, Client
-    #2013 software requirements: https://technet.microsoft.com/en-us/library/cc262485.aspx?f=255&MSPPError=-2147217396
-    #Default WinVersion is 2016
+    #SP 2013 software requirements: https://technet.microsoft.com/en-us/library/cc262485.aspx?f=255&MSPPError=-2147217396
+    #Default WinVersion is 2016. other options: "2012", "2012R2"
+    #ProvisioninngType options: Image, Url, Manual
     Machines = @(
         @{
             Name = "SP2013Ent01dc01"
@@ -23,20 +24,24 @@
             WinVersion = ""
             Image = ""
         }
+        <#
         @{
             Name = "SP2013Ent01adm"
             Roles = "Admin"
             Memory = 1.5
             DiskSize = 30
+            ProvisioninngType = "URL"
             WinVersion = ""
             Image = ""
         }
+        #>
         @{
             Name = "SP2013Ent01sq01"
             Roles = "SQL"
             Memory = 14
             DiskSize = 120
-            WinVersion = "2012R2"
+            ProvisioninngType = "URL"
+            WinVersion = "2016"
             Image = ""
         }
         @{
@@ -44,7 +49,7 @@
             Roles = "SharePoint", "WFE", "Application", "DistributedCache", "SearchQuery", "SearchCrawl", "Code"
             Memory = 14
             DiskSize = 120
-            #is 2012 acceptable?
+            ProvisioninngType = "URL"
             WinVersion = "2012"
             Image = ""
         }
@@ -57,8 +62,6 @@
             Image = ""
         }#>
     )
-    SubnetIpAddress = "192.168.0.0"
-    DomainControllerIP = "192.168.0.4"
     SearchIndexDirectory = "c:\SPSearchIndex"
     SPProductKey = "NQTMW-K63MQ-39G6H-B2CH9-FRDWJ"
     DomainAdminUserName = "dauser1"

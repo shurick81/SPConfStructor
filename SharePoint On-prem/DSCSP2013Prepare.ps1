@@ -1,13 +1,31 @@
 Configuration SP2013Prepare
 {
     param(
-        $configParameters
+        $configParameters,
+        $systemParameters
     )
 
+    $localAdminUserName = $systemParameters.LocalAdminUserName;
+
+    # examining, generating and requesting credentials
+    
+        if ( !$localAdminCredential )
+        {
+            if ( $localAdminUserName )
+            {
+                $securedPassword = ConvertTo-SecureString $systemParameters.LocalAdminPassword -AsPlainText -Force
+                $localAdminCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$localAdminUserName", $securedPassword )
+            } else {
+                $localAdminCredential = Get-Credential -Message "Credential with local administrator privileges";
+            }
+        }
+
+    # credentials are ready
+
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile
+    Import-DscResource -ModuleName xPendingReboot
     Import-DSCResource -Module xSystemSecurity -Name xIEEsc
-    Import-DscResource -ModuleName xStorage
+    Import-DsCResource -Module xWindowsUpdate -Name xHotfix
     Import-DSCResource -ModuleName SharePointDSC
     Import-DscResource -ModuleName xWebAdministration
 
@@ -15,11 +33,18 @@ Configuration SP2013Prepare
 
     Node $SPMachines
     {
+        #Only needed for manual mof installation, not for automated?
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true;
         }
          
+        File LogFolder
+        {
+            Type            = "Directory"
+            DestinationPath = "C:\SPLogs"
+        }
+
         Registry LoopBackRegistry
         {
             Ensure      = "Present"  # You can also set Ensure to "Absent"
@@ -29,60 +54,36 @@ Configuration SP2013Prepare
             ValueData   = "1"
         }
 
+        #needed for SP2013RTM Only?
+        xHotfix RemoveDotNet47
+        {
+            Ensure  = "Absent"
+            Path    = "C:/anyfolder/KB3186505.msu"
+            Id      = "KB3186505"
+        }
+
+        xPendingReboot RebootAfterNETUninstalling
+        { 
+            Name        = 'AfterNETUninstalling'
+            DependsOn   = "[xHotfix]RemoveDotNet47"
+        }
+
         xIEEsc DisableIEEsc
         {
             IsEnabled   = $false
             UserRole    = "Administrators"
         }
-                        
-        xRemoteFile SPServerImageFile
-        {
-            DestinationPath = "C:\Install\SPImage\SharePointServer_x64_en-us.img"
-            Uri = "http://care.dlservice.microsoft.com/dl/download/3/D/7/3D713F30-C316-49B8-9CC0-E1BFC34B63A0/SharePointServer_x64_en-us.img"
-        }
-
-        xRemoteFile SPServicePackFile
-        {
-            DestinationPath = "C:\Install\SPServicePack\officeserversp2013-kb2880552-fullfile-x64-en-us.exe"
-            Uri = "https://download.microsoft.com/download/7/A/8/7A84E002-6512-4506-A812-CA66FF6766D9/officeserversp2013-kb2880552-fullfile-x64-en-us.exe"
-        }
-
-        xMountImage SPServerImageMount
-        {
-            ImagePath   = 'C:\Install\SPImage\SharePointServer_x64_en-us.img'
-            DriveLetter = 'S'
-            DependsOn   = @("[xRemoteFile]SPServerImageFile")
-        }
-
-        xWaitForVolume WaitForSPServerImageMount
-        {
-            DriveLetter         = 'S'
-            RetryIntervalSec    = 5
-            RetryCount          = 10
-            DependsOn           = "[xMountImage]SPServerImageMount"
-        }
-
-        File SPServerInstallatorDirectory
-        {
-            Ensure          = "Present"
-            Type            = "Directory"
-            Recurse         = $true
-            SourcePath      = "S:\"
-            DestinationPath = "C:\Install\SPExtracted"
-            DependsOn       = "[xWaitForVolume]WaitForSPServerImageMount"
-        }
-
-        WindowsFeature NetFramework35Core
-        {
-            Name = "NetFX3"
-            Ensure = "Present"
-        }
-
+        
         SPInstallPrereqs SP2016Prereqs
         {
             InstallerPath   = "C:\Install\SPExtracted\Prerequisiteinstaller.exe"
             OnlineMode      = $true
-            DependsOn   = "[File]SPServerInstallatorDirectory","[WindowsFeature]NetFramework35Core"
+        }
+
+        xPendingReboot RebootBeforeSPInstalling
+        { 
+            Name        = 'BeforeSPInstalling'
+            DependsOn   = "[SPInstallPrereqs]SP2016Prereqs"
         }
         
         SPInstall InstallSharePoint 
@@ -93,18 +94,11 @@ Configuration SP2013Prepare
             DependsOn   = "[SPInstallPrereqs]SP2016Prereqs"
         }
 
-        Package SPServicePack
-        {
-            Ensure      = "Present"
-            Name        = "SPServicePack"
-            Path        = "C:\Install\SPServicePack\officeserversp2013-kb2880552-fullfile-x64-en-us.exe"
-            Arguments   = "/install /passive /norestart"
-            ProductId   = "6ce0f2ad-2643-496c-9b48-d0587d3e10a9"
-        }
-
         xIISLogging RootWebAppIISLogging
         {
-            LogPath = "C:\SPLogs\IIS"
+            LogPath     = "C:\SPLogs\IIS"
+            DependsOn   = "[SPInstallPrereqs]SP2016Prereqs","[File]LogFolder"
         }
+
     }
 }

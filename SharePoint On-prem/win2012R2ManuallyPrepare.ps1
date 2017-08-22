@@ -1,14 +1,4 @@
-<#
-$url = "http://download.microsoft.com/download/6/F/5/6F5FF66C-6775-42B0-86C4-47D41F2DA187/Win8.1AndW2K12R2-KB3191564-x64.msu"
-$installerFolder = "C:\Install\WMF5.1"
-if ( !( Test-Path -path $installerFolder ) )
-{
-    New-Item -ItemType directory -Path $installerFolder
-}
-
-$wc = New-Object System.Net.WebClient
-$wc.DownloadFile( $url, "$installerFolder\Win8.1AndW2K12R2-KB3191564-x64.msu" )
-#>
+#manual preparation of Win2012R2 machines to run mof files
 
 $url = "http://download.microsoft.com/download/6/F/5/6F5FF66C-6775-42B0-86C4-47D41F2DA187/Win8.1AndW2K12R2-KB3191564-x64.msu"
 $installerFolder = "C:\Install\WMF5.1"
