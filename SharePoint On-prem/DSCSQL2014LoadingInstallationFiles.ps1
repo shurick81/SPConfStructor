@@ -3,47 +3,43 @@ Configuration SQL2014LoadingInstallationFiles
     param(
         $SQLImageUrl
     )
-    $SQLPass = $configParameters.SQLPass;
-
-
-    # examining, generating and requesting credentials
-    
-        if ( !$SQLPassCredential )
-        {
-            if ( $SQLPass )
-            {
-                $securedPassword = ConvertTo-SecureString $SQLPass -AsPlainText -Force
-                $SQLPassCredential = New-Object System.Management.Automation.PSCredential( "anyidentity", $securedPassword )
-            } else {
-                $SQLPassCredential = Get-Credential -Message "Enter any user name and enter SQL SA password";
-            }
-        }
-
-    # credentials are ready
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile
     Import-DscResource -ModuleName xStorage
 
-    $SQLMachineNames = $configParameters.Machines | ? { $_.Roles -contains "SQL" } | % { $_.Name }
-
-    Node $SQLMachineNames
+    Node $AllNodes.NodeName
     {
-        # Is it really needed when running via Azure Automation? or only manually
+
+        <#
+        $SQLImageUrlParts = $SQLImageUrl.Split("/");
+        $SQLImageFileName = $SQLImageUrlParts[$SQLImageUrlParts.Count - 1];
+        $SQLImageDestinationPath = "C:\Install\SQLImage\$SQLImageFileName"
+        #>
+
         $SQLImageUrl -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
         $SQLImageFileName = $matches[0]
-        $SQLImageDestinationPath = "C:\Install\SQLImage\$SQLImageFileName"
+        $SQLImageDestinationPath = "C:\Install\SPImage\$SQLImageFileName"
+
         xRemoteFile SQLServerImageFile
         {
             Uri = $SQLImageUrl
             DestinationPath = $SQLImageDestinationPath
         }
 
+        <#
+        xRemoteFile SQLServerImageFile
+        {
+            Uri = "http://care.dlservice.microsoft.com/dl/download/2/F/8/2F8F7165-BB21-4D1E-B5D8-3BD3CE73C77D/SQLServer2014SP1-FullSlipstream-x64-ENU.iso"
+            DestinationPath = "C:\Install\SQLImage\SQLServer2014SP1-FullSlipstream-x64-ENU.iso"
+        }
+        #>
+
         xMountImage SQLServerImageMount
         {
-            ImagePath   = $SQLImageDestinationPath
+            ImagePath   = "C:\Install\SQLImage\SQLServer2014SP1-FullSlipstream-x64-ENU.iso"
             DriveLetter = 'S'
-            DependsOn   = @("[xRemoteFile]SQLServerImageFile")
+            DependsOn   = "[xRemoteFile]SQLServerImageFile"
         }
 
         xWaitForVolume WaitForSQLServerImageMount

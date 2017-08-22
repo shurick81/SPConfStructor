@@ -9,7 +9,7 @@
         AccessService = $true
     }
     SPMultitenancy = $false
-    DomainName = "SP2016Ent.local"
+    DomainName = "sharepoint.local"
     #machine name restriction: 15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
     #roles: AD, SQL, WFE, Application, DistributedCache, SearchQuery, SearchCrawl, OOS, WFM, Addins, Admin, Code, Client
     #SP 2013 software requirements: https://technet.microsoft.com/en-us/library/cc262485.aspx?f=255&MSPPError=-2147217396

@@ -10,7 +10,6 @@ Configuration SP2013LoadingInstallationFiles
     Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile
     Import-DscResource -ModuleName xStorage
 
-
     Node $AllNodes.NodeName
     {
         $SPImageUrl -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
@@ -62,7 +61,7 @@ Configuration SP2013LoadingInstallationFiles
         {
             $SPCumulativeUpdateURL -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
             $SPCumulativeUpdateFileName = $matches[0]
-            xRemoteFile SPServicePackFile
+            xRemoteFile SPCumulativeUpdateFile
             {
                 Uri             = "$SPCumulativeUpdateURL"
                 DestinationPath = "C:\Install\SPExtracted\Updates\$SPCumulativeUpdateFileName"

@@ -431,6 +431,10 @@ Configuration SP2013
         #DC configuration
     }
 
+    #Configuration machines
+
+    #Search
+
     $SearchQueryMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchQuery" } | % { $_.Name }
     
     Node $SearchQueryMachines
