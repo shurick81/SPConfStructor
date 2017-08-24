@@ -14,11 +14,9 @@ $configParameters = Import-PowershellDataFile $mainParametersFileName;
 $azureParameters = Import-PowershellDataFile $azureParametersFileName;
 $commonDictionary = Import-PowershellDataFile commonDictionary.psd1;
 
-Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (0) -id 0 -CurrentOperation "Resource group promotion";
+# examining, generating and requesting credentials
 
-$domainAdminUserName = $configParameters.DomainAdminUserName;
-if ( !$DomainAdminCredential )
-{
+    $domainAdminUserName = $configParameters.DomainAdminUserName;
     if ( $domainAdminUserName )
     {
         $securedPassword = ConvertTo-SecureString $configParameters.DomainAdminPassword -AsPlainText -Force
@@ -26,10 +24,19 @@ if ( !$DomainAdminCredential )
     } else {
         $domainAdminCredential = Get-Credential -Message "Credential with domain administrator privileges";
     }
-}
-$localAdminUserName = $azureParameters.LocalAdminUserName;
-if ( !$LocalAdminCredential )
-{
+    $configParameters.DomainAdminCredential = $domainAdminCredential;
+
+    $DomainSafeModeAdministratorPassword = $configParameters.DomainSafeModeAdministratorPassword;
+    if ( $DomainSafeModeAdministratorPassword )
+    {
+        $securedPassword = ConvertTo-SecureString $configParameters.DomainSafeModeAdministratorPassword -AsPlainText -Force
+        $DomainSafeModeAdministratorPasswordCredential = New-Object System.Management.Automation.PSCredential( "anyidentity", $securedPassword )
+    } else {
+        $DomainSafeModeAdministratorPasswordCredential = Get-Credential -Message "Enter any but not empty login and safe mode password";
+    }
+    $configParameters.DomainSafeModeAdministratorPasswordCredential = $DomainSafeModeAdministratorPasswordCredential;
+
+    $localAdminUserName = $azureParameters.LocalAdminUserName;
     if ( $localAdminUserName )
     {
         $securedPassword = ConvertTo-SecureString $azureParameters.LocalAdminPassword -AsPlainText -Force
@@ -37,12 +44,119 @@ if ( !$LocalAdminCredential )
     } else {
         $localAdminCredential = Get-Credential -Message "Credential with local administrator privileges";
     }
-}
+    $configParameters.LocalAdminCredential = $localAdminCredential;
+
+    $SPInstallAccountUserName = $configParameters.SPInstallAccountUserName;
+    if ( $SPInstallAccountUserName )
+    {
+        $securedPassword = ConvertTo-SecureString $configParameters.SPInstallAccountPassword -AsPlainText -Force
+        $SPInstallAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPInstallAccountUserName", $securedPassword )
+    } else {
+        $SPInstallAccountCredential = Get-Credential -Message "Credential for SharePoint install account";
+    }
+    $configParameters.SPInstallAccountCredential = $SPInstallAccountCredential;
+
+    $SPFarmAccountUserName = $configParameters.SPFarmAccountUserName;
+    if ( $SPFarmAccountUserName )
+    {
+        $securedPassword = ConvertTo-SecureString $configParameters.SPFarmAccountPassword -AsPlainText -Force
+        $SPFarmAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPFarmAccountUserName", $securedPassword )
+    } else {
+        $SPFarmAccountCredential = Get-Credential -Message "Credential for SharePoint farm account";
+    }
+    $configParameters.SPFarmAccountCredential = $SPFarmAccountCredential;
+
+    $SPWebAppPoolAccountUserName = $configParameters.SPWebAppPoolAccountUserName;
+    if ( $SPWebAppPoolAccountUserName )
+    {
+        $securedPassword = ConvertTo-SecureString $configParameters.SPWebAppPoolAccountPassword -AsPlainText -Force
+        $SPWebAppPoolAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPWebAppPoolAccountUserName", $securedPassword )
+    } else {
+        $SPWebAppPoolAccountCredential = Get-Credential -Message "Credential for SharePoint Web Application app pool account";
+    }
+    $configParameters.SPWebAppPoolAccountCredential = $SPWebAppPoolAccountCredential;
+
+    $SPServicesAccountUserName = $configParameters.SPServicesAccountUserName;
+    if ( $SPServicesAccountUserName )
+    {
+        $securedPassword = ConvertTo-SecureString $configParameters.SPServicesAccountPassword -AsPlainText -Force
+        $SPServicesAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPServicesAccountUserName", $securedPassword )
+    } else {
+        $SPServicesAccountCredential = Get-Credential -Message "Credential for SharePoint shared services app pool";
+    }
+    $configParameters.SPServicesAccountCredential = $SPServicesAccountCredential;
+
+    $SPSearchServiceAccountUserName = $configParameters.SPSearchServiceAccountUserName;
+    if ( $SPSearchServiceAccountUserName )
+    {
+        $securedPassword = ConvertTo-SecureString $configParameters.SPSearchServiceAccountPassword -AsPlainText -Force
+        $SPSearchServiceAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPSearchServiceAccountUserName", $securedPassword )
+    } else {
+        $SPSearchServiceAccountCredential = Get-Credential -Message "Credential for SharePoint search service account";
+    }
+    $configParameters.SPSearchServiceAccountCredential = $SPSearchServiceAccountCredential;
+
+    $SPCrawlerAccountUserName = $configParameters.SPCrawlerAccountUserName;
+    if ( $SPCrawlerAccountUserName )
+    {
+        $securedPassword = ConvertTo-SecureString $configParameters.SPCrawlerAccountPassword -AsPlainText -Force;
+        $SPCrawlerAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPCrawlerAccountUserName", $securedPassword );
+    } else {
+        $SPCrawlerAccountCredential = Get-Credential -Message "Credential for SharePoint crawler account";
+    }
+    $configParameters.SPCrawlerAccountCredential = $SPCrawlerAccountCredential;
+
+    $SPTestAccountUserName = $configParameters.SPTestAccountUserName;
+    if ( $SPTestAccountUserName )
+    {
+        $securedPassword = ConvertTo-SecureString $configParameters.SPTestAccountPassword -AsPlainText -Force;
+        $SPTestAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPTestAccountUserName", $securedPassword );
+    } else {
+        $SPTestAccountCredential = Get-Credential -Message "Credential for SharePoint test user";
+    }
+    $configParameters.SPTestAccountCredential = $SPTestAccountCredential;
+
+    $SPSecondTestAccountUserName = $configParameters.SPSecondTestAccountUserName;
+    if ( $SPSecondTestAccountUserName )
+    {
+        $securedPassword = ConvertTo-SecureString $configParameters.SPSecondTestAccountPassword -AsPlainText -Force
+        $SPSecondTestAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPSecondTestAccountUserName", $securedPassword );
+    } else {
+        $SPSecondTestAccountCredential = Get-Credential -Message "Credential for SharePoint test user";
+    }
+    $configParameters.SPSecondTestAccountCredential = $SPSecondTestAccountCredential;
+
+    $SPOCAccountPass = ConvertTo-SecureString "Any3ligiblePa`$`$" -AsPlainText -Force;
+    $SPOCAccountCredential = New-Object System.Management.Automation.PSCredential( "anyusername", $SPOCAccountPass );
+    $configParameters.SPOCAccountCredential = $SPOCAccountCredential
+
+    $SQLPass = $configParameters.SQLPass;
+    if ( $SQLPass )
+    {
+        $securedPassword = ConvertTo-SecureString $SQLPass -AsPlainText -Force
+        $SQLPassCredential = New-Object System.Management.Automation.PSCredential( "anyidentity", $securedPassword )
+    } else {
+        $SQLPassCredential = Get-Credential -Message "Enter any user name and enter SQL SA password";
+    }
+    $configParameters.SQLPassCredential = $SQLPassCredential;
+
+    $SPPassPhrase = $configParameters.SPPassPhrase;
+    if ( $SPPassPhrase )
+    {
+        $securedPassword = ConvertTo-SecureString $SPPassPhrase -AsPlainText -Force
+        $SPPassphraseCredential = New-Object System.Management.Automation.PSCredential( "anyidentity", $securedPassword )
+    } else {
+        $SPPassphraseCredential = Get-Credential -Message "Enter any user name and enter pass phrase in password field";
+    }
+    $configParameters.SPPassphraseCredential = $SPPassphraseCredential;
+
+# credentials are ready
 
 $resourceGroupName = $azureParameters.ResourceGroupName;
 $resourceGroupLocation = $azureParameters.ResourceGroupLocation;
 $storageAccountNameLong = ( $resourceGroupName + "StdStor" );
 $storageAccountName = $storageAccountNameLong.Substring( 0, [System.Math]::Min( 24, $storageAccountNameLong.Length ) ).ToLower();
+$vnetName = ( $resourceGroupName + "VNet");
 
 if ( $azureParameters.Login )
 {
@@ -54,6 +168,7 @@ if ( $azureParameters.DeleteResourceGroup )
     .\azurePurge.ps1
 }
 
+Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (0) -id 0 -CurrentOperation "Resource group promotion";
 if ( $azureParameters.PrepareResourceGroup )
 {
     $resourceGroup = Get-AzureRmResourceGroup $resourceGroupName -ErrorAction Ignore;
@@ -62,7 +177,6 @@ if ( $azureParameters.PrepareResourceGroup )
         $resourceGroup = New-AzureRmResourceGroup -Name $resourceGroupName -Location $resourceGroupLocation;
     }
 
-    $vnetName = ( $resourceGroupName + "VNet");
     $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name $vnetName -ErrorAction Ignore;
     if ( !$vnet )
     {
@@ -86,8 +200,10 @@ if ( $azureParameters.PrepareResourceGroup )
         New-AzureRmAutomationAccount -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -Name $automationAccountName | Out-Null;
 
         #Does not seem like this is needed
+        <#
         $subscriptionId = (Get-AzureRmSubscription)[0].id;
         .\New-RunAsAccount.ps1 -ResourceGroup $resourceGroupName -AutomationAccountName $automationAccountName -SubscriptionId $subscriptionId -ApplicationDisplayName "$resourceGroupName Automation" -SelfSignedCertPlainPassword $azureParameters.AzureAutomationPassword -CreateClassicRunAsAccount $true
+        #>
     }
 }
 
@@ -150,13 +266,17 @@ if ( $azureParameters.CreateVMs )
                 -Skus $skus -Version latest | Add-AzureRmVMNetworkInterface -Id $nic.Id
             New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null; 
             if ( $_.WinVersion -eq "2012" ) {
-                #http://setspn.blogspot.ru/2015/06/working-with-powershell-dsc-and-azure.html
                 $containerName = "psscripts";
                 $fileName = "Win2012Prepare.ps1"
                 $subscriptionName = (Get-AzureRmSubscription)[0].Name;
                 Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName;
-                New-AzureStorageContainer -Name $containerName -Permission Off;
-                Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force;
+                $existingStorageContainer = $null;
+                $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
+                if ( !$existingStorageContainer )
+                {
+                    New-AzureStorageContainer -Name $containerName -Permission Off | Out-Null;
+                }
+                Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force | Out-Null;
                 Set-AzureRmVMCustomScriptExtension -VM $machineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName
             }
         }
@@ -170,11 +290,11 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
 # machines preparation
 
     Write-Progress -Activity 'Domain controller preparation' -PercentComplete (5)
-    if ( $azureParameters.PrepareSoftware )
+    if ( $azureParameters.ADInstall )
     {
         $ADMachines = $configParameters.Machines | ? { $_.Roles -contains "AD" }
         $ADMachines | % {
-            $configName = "DomainPrepare"
+            $configName = "DomainInstall"
             $configFileName = "DSC$configName.ps1";
             Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force | Out-Null;
             Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force;
@@ -186,30 +306,30 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     $SQLMachines = $configParameters.Machines | ? { $_.Roles -contains "SQL" }
     $SQLMachines | % {
         $machineName = $_.Name;    
-        if ( $_.ProvisioninngType -eq "URL" )
+        if ( $azureParameters.DownloadInstallationFiles -and ( $azureParameters.SQLImageSource -eq "Public" ) )
         {
-            if ( $azureParameters.DownloadInstallationFiles )
-            {
-                $configName = "SQL$($SQLVersion)LoadingInstallationFiles";
-                $configFileName = "DSC$configName.ps1";
-                Publish-AzureRmVMDscConfiguration $configFileName <#-ConfigurationDataPath $tempConfigDataFilePath #>-ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force | Out-Null;
-                $sqlImageUrl = $commonDictionary.SQLVersions[$SQLVersion].RTMImageUrl;
-                $configurationArguments = @{
-                    SQLImageUrl = $sqlImageUrl
-                }
-                Write-Progress -Activity 'SQL server installation files downloading' -PercentComplete (0) -CurrentOperation $machineName -ParentId 1;
-                Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
+            $configName = "SQL$($SQLVersion)LoadingInstallationFiles";
+            $configFileName = "DSC$configName.ps1";
+            Publish-AzureRmVMDscConfiguration $configFileName <#-ConfigurationDataPath $tempConfigDataFilePath #>-ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force | Out-Null;
+            $sqlImageUrl = $commonDictionary.SQLVersions[$SQLVersion].RTMImageUrl;
+            $configurationArguments = @{
+                SQLImageUrl = $sqlImageUrl
             }
-    
-            if ( $azureParameters.PrepareSoftware )
-            {
-                $configName = "SQL$($SQLVersion)Prepare";
-                $configFileName = "DSC$configName.ps1";
-                Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force | Out-Null;
-                $configurationArguments = @{ configParameters=$configParameters }
-                Write-Progress -Activity 'SQL server preparation' -PercentComplete (0) -CurrentOperation $machineName -ParentId 1;
-                Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
+            Write-Progress -Activity 'SQL server installation files downloading' -PercentComplete (0) -CurrentOperation $machineName -ParentId 1;
+            Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
+        }
+
+        if ( $azureParameters.SQLInstall )
+        {
+            $configName = "SQL$($SQLVersion)Install";
+            $configFileName = "DSC$configName.ps1";
+            Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force | Out-Null;
+            $configurationArguments = @{
+                configParameters = $configParameters
+                SQLPassCredential = $configParameters.SQLPassCredential
             }
+            Write-Progress -Activity 'SQL server preparation' -PercentComplete (0) -CurrentOperation $machineName -ParentId 1;
+            Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
         }
     }
 
@@ -218,9 +338,9 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     $SPMachines = $configParameters.Machines | ? { $_.Roles -contains "SharePoint" }
     $SPMachines | % {
         $machineName = $_.Name;        
-        if ( $_.ProvisioninngType -eq "URL" )
+        if ( $azureParameters.DownloadInstallationFiles )
         {
-            if ( $azureParameters.DownloadInstallationFiles )
+            if ( $azureParameters.SPImageSource -eq "Public" )
             {
                 $configName = "SP$($SPVersion)LoadingInstallationFiles";
                 $configFileName = "DSC$configName.ps1";
@@ -236,7 +356,7 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
                 $SPCumulativeUpdate = $configParameters.SPCumulativeUpdate;
                 if ( $SPCumulativeUpdate -and ( $SPCumulativeUpdate -ne "" ) )
                 {
-                    $spCumulativeUpdateUrl = $commonDictionary.SPVersions[$SPVersion].ServicePacks[$SPCumulativeUpdate].Url;
+                    $spCumulativeUpdateUrl = $commonDictionary.SPVersions[$SPVersion].CumulativeUpdates[$SPCumulativeUpdate].Url;
                 }
                 $configurationArguments = @{
                     SPImageUrl = $spImageUrl
@@ -246,16 +366,46 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
                 Write-Progress -Activity 'SharePoint server installation files downloading' -PercentComplete (0) -CurrentOperation $machineName -ParentId 1;
                 Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
             }
-
-            if ( $azureParameters.PrepareSoftware )
+            if ( $azureParameters.SPImageSource -eq "AzureBlob" )
             {
-                $configName = "SP$($SPVersion)Prepare";
+                $configName = "SP$($SPVersion)LoadingInstallationFiles";
                 $configFileName = "DSC$configName.ps1";
                 Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force | Out-Null;
-                $configurationArguments = @{ configParameters=$configParameters }
-                Write-Progress -Activity 'SharePoint server preparation' -PercentComplete (0) -CurrentOperation $machineName -ParentId 1;
+                $spImageUrl = $commonDictionary.SPVersions[$SPVersion].RTMImageUrl;
+                $spServicePackUrl = "";
+                $SPServicePack = $configParameters.SPServicePack;
+                if ( $SPServicePack -and ( $SPServicePack -ne "" ) )
+                {
+                    $spServicePackUrl = $commonDictionary.SPVersions[$SPVersion].ServicePacks[$SPServicePack].Url;
+                }
+                $spCumulativeUpdateUrl = "";
+                $SPCumulativeUpdate = $configParameters.SPCumulativeUpdate;
+                if ( $SPCumulativeUpdate -and ( $SPCumulativeUpdate -ne "" ) )
+                {
+                    $spCumulativeUpdateUrl = $commonDictionary.SPVersions[$SPVersion].CumulativeUpdates[$SPCumulativeUpdate].Url;
+                }
+                $configurationArguments = @{
+                    SPImageUrl = $spImageUrl
+                    SPServicePackUrl = $spServicePackUrl
+                    SPCumulativeUpdateUrl = $spCumulativeUpdateUrl
+                }
+                Write-Progress -Activity 'SharePoint server installation files downloading' -PercentComplete (0) -CurrentOperation $machineName -ParentId 1;
                 Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
             }
+        }
+
+        if ( $azureParameters.SPInstall )
+        {
+            $configName = "SP$($SPVersion)Install";
+            $configFileName = "DSC$configName.ps1";
+            Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force | Out-Null;
+            $configurationArguments = @{
+                ConfigParameters = $configParameters
+                #Needed?
+                LocalAdminCredential = $LocalAdminCredential
+            }
+            Write-Progress -Activity 'SharePoint server preparation' -PercentComplete (0) -CurrentOperation $machineName -ParentId 1;
+            Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
         }
     }
 
@@ -265,12 +415,24 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
 if ( $azureParameters.InstallDomain )
 {
     $ADMachines = $configParameters.Machines | ? { $_.Roles -contains "AD" }
-    if ( $ADMachines )
-    {
+    $ADMachines | % {
         $configName = "SPDomain"
         $configFileName = "DSC$configName.ps1";
-        Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force;
-        $configurationArguments = @{ configParameters=$configParameters }
+        Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force | Out-Null;
+        $configurationArguments = @{
+            configParameters = $configParameters
+            DomainAdminCredential = $DomainAdminCredential
+            DomainSafeModeAdministratorPasswordCredential = $DomainSafeModeAdministratorPasswordCredential
+            SPInstallAccountCredential = $SPInstallAccountCredential
+            SPFarmAccountCredential = $SPFarmAccountCredential
+            SPWebAppPoolAccountCredential = $SPWebAppPoolAccountCredential
+            SPServicesAccountCredential = $SPServicesAccountCredential
+            SPSearchServiceAccountCredential = $SPSearchServiceAccountCredential
+            SPCrawlerAccountCredential = $SPCrawlerAccountCredential
+            SPOCAccountCredential = $SPOCAccountCredential
+            SPTestAccountCredential = $SPTestAccountCredential
+            SPSecondTestAccountCredential = $SPSecondTestAccountCredential
+        }
         Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments;
     }
 }
@@ -282,7 +444,7 @@ if ( $azureParameters.JoinDomain )
     $domainClientMachines | % {
         $configName = "DomainClient"
         $configFileName = "DSC$configName.ps1";
-        Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force;
+        Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force | Out-Null;
         $configurationArguments = @{
             "ConfigParameters" = $configParameters
             "SystemParameters" = $azureParameters
@@ -316,7 +478,7 @@ if ( $azureParameters.ConfigureSharePoint )
         $configName = "SP$($SPVersion)";
         $configFileName = "DSC$configName.ps1";
         if ( $configParameters.SPVersion -eq "2013" ) { $configFileName = "DSCSP2013.ps1" } else { $configFileName = "DSCSP2016.ps1" }
-        Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force;
+        Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Verbose -Force | Out-Null;
         Remove-Item $tempConfigDataFilePath;
         $configurationArguments = @{ ConfigParameters = $configParameters }
         Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName "SPDomain" -Verbose -Force -ConfigurationArgument $configurationArguments;

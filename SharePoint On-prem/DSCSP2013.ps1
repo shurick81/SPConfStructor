@@ -4,114 +4,13 @@ Configuration SP2013
         $configParameters
     )
     $DomainName = $configParameters.DomainName;
-    $domainAdminUserName = $configParameters.DomainAdminUserName;
-    $SPInstallAccountUserName = $configParameters.SPInstallAccountUserName;
-    $SPFarmAccountUserName = $configParameters.SPFarmAccountUserName;
-    $SPWebAppPoolAccountUserName = $configParameters.SPWebAppPoolAccountUserName;
-    $SPServicesAccountUserName = $configParameters.SPServicesAccountUserName;
-    $SPSearchServiceAccountUserName = $configParameters.SPSearchServiceAccountUserName;
-    $SPCrawlerAccountUserName = $configParameters.SPCrawlerAccountUserName;
-    $SPPassPhrase = $configParameters.SPPassPhrase;
     $searchIndexDirectory = $configParameters.searchIndexDirectory;
     $SPSiteCollectionHostName = $configParameters.SPSiteCollectionHostName;
 
     $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
     $webAppHostName = "SP2013_01.$DomainName";
 
-    # examining, generating and requesting credentials
-    
-        if ( !$DomainAdminCredential )
-        {
-            if ( $domainAdminUserName )
-            {
-                $securedPassword = ConvertTo-SecureString $configParameters.DomainAdminPassword -AsPlainText -Force
-                $domainAdminCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$domainAdminUserName", $securedPassword )
-            } else {
-                $domainAdminCredential = Get-Credential -Message "Credential with domain administrator privileges";
-            }
-        }
-
-        if ( !$SPInstallAccountCredential )
-        {
-            if ( $SPInstallAccountUserName )
-            {
-                $securedPassword = ConvertTo-SecureString $configParameters.SPInstallAccountPassword -AsPlainText -Force
-                $SPInstallAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPInstallAccountUserName", $securedPassword )
-            } else {
-                $SPInstallAccountCredential = Get-Credential -Message "Credential for SharePoint install account";
-            }
-        }
-
-        if ( !$SPPassphraseCredential )
-        {
-            if ( $SPPassPhrase )
-            {
-                $securedPassword = ConvertTo-SecureString $SPPassPhrase -AsPlainText -Force
-                $SPPassphraseCredential = New-Object System.Management.Automation.PSCredential( "anyidentity", $securedPassword )
-            } else {
-                $SPPassphraseCredential = Get-Credential -Message "Enter any user name and enter pass phrase in password field";
-            }
-        }
-
-        if ( !$SPFarmAccountCredential )
-        {
-            if ( $SPFarmAccountUserName )
-            {
-                $securedPassword = ConvertTo-SecureString $configParameters.SPFarmAccountPassword -AsPlainText -Force
-                $SPFarmAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPFarmAccountUserName", $securedPassword )
-            } else {
-                $SPFarmAccountCredential = Get-Credential -Message "Credential for SharePoint farm account";
-            }
-        }
-
-        if ( !$SPWebAppPoolAccountCredential )
-        {
-            if ( $SPWebAppPoolAccountUserName )
-            {
-                $securedPassword = ConvertTo-SecureString $configParameters.SPWebAppPoolAccountPassword -AsPlainText -Force
-                $SPWebAppPoolAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPWebAppPoolAccountUserName", $securedPassword )
-            } else {
-                $SPWebAppPoolAccountCredential = Get-Credential -Message "Credential for SharePoint Web Application app pool account";
-            }
-        }
-
-        if ( !$SPServicesAccountCredential )
-        {
-            if ( $SPServicesAccountUserName )
-            {
-                $securedPassword = ConvertTo-SecureString $configParameters.SPServicesAccountPassword -AsPlainText -Force
-                $SPServicesAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPServicesAccountUserName", $securedPassword )
-            } else {
-                $SPServicesAccountCredential = Get-Credential -Message "Credential for SharePoint shared services app pool";
-            }
-        }
-
-        if ( !$SPSearchServiceAccountCredential )
-        {
-            if ( $SPSearchServiceAccountUserName )
-            {
-                $securedPassword = ConvertTo-SecureString $configParameters.SPSearchServiceAccountPassword -AsPlainText -Force
-                $SPSearchServiceAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPSearchServiceAccountUserName", $securedPassword )
-            } else {
-                $SPSearchServiceAccountCredential = Get-Credential -Message "Credential for SharePoint search service account";
-            }
-        }
-
-        if ( !$SPCrawlerAccountCredential )
-        {
-            if ( $SPCrawlerAccountUserName )
-            {
-                $securedPassword = ConvertTo-SecureString $configParameters.SPCrawlerAccountPassword -AsPlainText -Force
-                $SPCrawlerAccountCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$SPCrawlerAccountUserName", $securedPassword )
-            } else {
-                $SPCrawlerAccountCredential = Get-Credential -Message "Credential for SharePoint crawler account";
-            }
-        }
-
-    # credentials are ready
-
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DSCResource -ModuleName xDSCDomainJoin
     Import-DSCResource -ModuleName xNetworking
     Import-DSCResource -ModuleName xSQLServer -Name xSQLServerAlias
     Import-DscResource -ModuleName xCredSSP
@@ -120,7 +19,7 @@ Configuration SP2013
 
     $SPMachines = $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % { $_.Name }
 
-    Node $SPMachines
+    Node $AllNodes.NodeName
     {
         
         xHostsFile WAHostEntry
@@ -163,11 +62,11 @@ Configuration SP2013
             DatabaseServer            = $configParameters.SPDatabaseAlias
             FarmConfigDatabaseName    = "SP_Config"
             AdminContentDatabaseName  = "SP_AdminContent"
-            Passphrase                = $SPPassphraseCredential
-            FarmAccount               = $SPFarmAccountCredential
+            Passphrase                = $configParameters.SPPassphraseCredential
+            FarmAccount               = $configParameters.SPFarmAccountCredential
             RunCentralAdmin           = $true
             CentralAdministrationPort = 50555
-            InstallAccount            = $SPInstallAccountCredential
+            InstallAccount            = $configParameters.SPInstallAccountCredential
             DependsOn                 = @( "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[xSQLServerAlias]SPDBAlias" )
         }
 
@@ -179,7 +78,7 @@ Configuration SP2013
             ValueName               = "HTTP"
             ValueType               = "DWORD"
             ValueData               = "1"
-            PsDscRunAsCredential    = $SPInstallAccountCredential
+            PsDscRunAsCredential    = $configParameters.SPInstallAccountCredential
         }
     }
 
@@ -192,7 +91,7 @@ Configuration SP2013
         SPServiceInstance ManagedMetadataServiceInstance
         {
             Name            = "Access Database Service 2010"
-            InstallAccount  = $SPInstallAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
         }
 
     }
@@ -205,25 +104,25 @@ Configuration SP2013
         {
             LogPath         = "C:\SPLogs\ULS"
             LogSpaceInGB    = 10
-            InstallAccount  = $SPInstallAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
         }
 
         SPManagedAccount ApplicationWebPoolAccount
         {
-            AccountName     = $SPWebAppPoolAccountCredential.UserName
-            Account         = $SPWebAppPoolAccountCredential
-            InstallAccount  = $SPInstallAccountCredential
+            AccountName     = $configParameters.SPWebAppPoolAccountCredential.UserName
+            Account         = $configParameters.SPWebAppPoolAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
         }
 
         SPWebApplication RootWebApp
         {
             Name                    = "RootWebApp"
             ApplicationPool         = "All Web Application"
-            ApplicationPoolAccount  = $SPWebAppPoolAccountCredential.UserName
+            ApplicationPoolAccount  = $configParameters.SPWebAppPoolAccountCredential.UserName
             Url                     = "http://$webAppHostName"
             DatabaseName            = "SP_Content_01"
             AuthenticationMethod    = "NTLM"
-            InstallAccount          = $SPInstallAccountCredential
+            InstallAccount          = $configParameters.SPInstallAccountCredential
             DependsOn               = "[SPManagedAccount]ApplicationWebPoolAccount"
         }
 
@@ -232,7 +131,7 @@ Configuration SP2013
             WebAppUrl            = "http://$webAppHostName"
             SuperUserAlias       = "$shortDomainName\$($configParameters.SPOCSuperUser)"
             SuperReaderAlias     = "$shortDomainName\$($configParameters.SPOCSuperReader)"
-            InstallAccount       = $SPInstallAccountCredential
+            InstallAccount       = $configParameters.SPInstallAccountCredential
             DependsOn            = "[SPWebApplication]RootWebApp"
         }
 
@@ -241,47 +140,47 @@ Configuration SP2013
             WebAppUrl               = "RootWebApp"
             MembersToInclude        = @(
                 MSFT_SPWebPolicyPermissions {
-                    Username        = $SPInstallAccountCredential.UserName
+                    Username        = $configParameters.SPInstallAccountCredential.UserName
                     PermissionLevel = "Full Control"
                     IdentityType    = "Claims"
                 }
             )
             SetCacheAccountsPolicy = $true
-            InstallAccount         = $SPInstallAccountCredential
+            InstallAccount         = $configParameters.SPInstallAccountCredential
             DependsOn              = "[SPCacheAccounts]CacheAccounts"
         }
 
         SPSite RootPathSite
         {
             Url             = "http://$webAppHostName"
-            OwnerAlias      = $SPInstallAccountCredential.UserName
-            InstallAccount  = $SPInstallAccountCredential
+            OwnerAlias      = $configParameters.SPInstallAccountCredential.UserName
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPWebApplication]RootWebApp"
         }
 
         SPSite RootHostSite
         {
             Url                         = "http://$SPSiteCollectionHostName"
-            OwnerAlias                  = $SPInstallAccountCredential.UserName
+            OwnerAlias                  = $configParameters.SPInstallAccountCredential.UserName
             Template                    = "STS#0"
             HostHeaderWebApplication    = "http://$webAppHostName"
-            InstallAccount              = $SPInstallAccountCredential
+            InstallAccount              = $configParameters.SPInstallAccountCredential
             DependsOn                   = "[SPSite]RootPathSite"
         }
         
         SPManagedAccount SharePointServicesPoolAccount
         {
-            AccountName     = $SPServicesAccountCredential.UserName
-            Account         = $SPServicesAccountCredential
-            InstallAccount  = $SPInstallAccountCredential
+            AccountName     = $configParameters.SPServicesAccountCredential.UserName
+            Account         = $configParameters.SPServicesAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPFarm]Farm"
         }
 
         SPServiceAppPool SharePointServicesAppPool
         {
             Name            = "SharePoint Services App Pool"
-            ServiceAccount  = $SPServicesAccountCredential.UserName
-            InstallAccount  = $SPInstallAccountCredential
+            ServiceAccount  = $configParameters.SPServicesAccountCredential.UserName
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPManagedAccount]SharePointServicesPoolAccount"
         }
 
@@ -289,8 +188,8 @@ Configuration SP2013
         {
             Name            = "Access Services"
             ApplicationPool = "SharePoint Services App Pool";
-            DatabaseServer  = $NodeName
-            InstallAccount  = $SPInstallAccountCredential
+            DatabaseServer  = $configParameters.SPDatabaseAlias
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPServiceAppPool]SharePointServicesAppPool"
         }
 
@@ -298,9 +197,9 @@ Configuration SP2013
         {
             Name            = "Business Data Connectivity Service"
             ApplicationPool = "SharePoint Services App Pool";
-            DatabaseServer  = $NodeName
+            DatabaseServer  = $configParameters.SPDatabaseAlias
             DatabaseName    = "SP_BCS"
-            InstallAccount  = $SPInstallAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPServiceAppPool]SharePointServicesAppPool"
         }
 
@@ -311,7 +210,7 @@ Configuration SP2013
             ProxyName       = "Managed Metadata Service Application";
             Name            = "Managed Metadata Service Application";
             Ensure          = "Present";
-            InstallAccount  = $SPInstallAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPServiceAppPool]SharePointServicesAppPool"
         }
 
@@ -320,7 +219,7 @@ Configuration SP2013
             Name            = "PerformancePoint Service Application"
             ApplicationPool = "SharePoint Services App Pool";
             DatabaseName    = "SP_PerformancePoint"
-            InstallAccount  = $SPInstallAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPServiceAppPool]SharePointServicesAppPool"
         }
 
@@ -330,7 +229,7 @@ Configuration SP2013
             ApplicationPool = "SharePoint Services App Pool"
             AuditingEnabled = $true
             DatabaseName    = "SP_SecureStoreService"
-            InstallAccount  = $SPInstallAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPServiceAppPool]SharePointServicesAppPool"
         }
 
@@ -339,7 +238,7 @@ Configuration SP2013
             Name            = "State Service"
             DatabaseName    = "SP_StateService"
             Ensure          = "Present"
-            InstallAccount  = $SPInstallAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPServiceAppPool]SharePointServicesAppPool"
         }
 
@@ -348,7 +247,7 @@ Configuration SP2013
             Name            = "Subscription Settings Service Application"
             ApplicationPool = "SharePoint Services App Pool"
             DatabaseName    = "SP_SubscriptionSettings"
-            InstallAccount  = $SPInstallAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPServiceAppPool]SharePointServicesAppPool"
         }
 
@@ -357,7 +256,7 @@ Configuration SP2013
             Name            = "App Management Service Application"
             ApplicationPool = "SharePoint Services App Pool"
             DatabaseName    = "SP_AppManagement"
-            InstallAccount  = $SPInstallAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPSubscriptionSettingsServiceApp]SubscriptionSettingsServiceApp"
         }
 
@@ -368,26 +267,26 @@ Configuration SP2013
             UsageLogCutTime         = 5
             UsageLogLocation        = "C:\SPLogs\Usage"
             UsageLogMaxFileSizeKB   = 1024
-            InstallAccount          = $SPInstallAccountCredential
+            InstallAccount          = $configParameters.SPInstallAccountCredential
             DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
         }
 
         SPSite SearchCenterSite
         {
             Url                         = "http://$SPSiteCollectionHostName/sites/searchcenter"
-            OwnerAlias                  = $SPInstallAccountCredential.UserName
+            OwnerAlias                  = $configParameters.SPInstallAccountCredential.UserName
             Template                    = "SRCHCEN#0"
             HostHeaderWebApplication    = "http://$webAppHostName"
-            InstallAccount              = $SPInstallAccountCredential
+            InstallAccount              = $configParameters.SPInstallAccountCredential
             DependsOn                   = "[SPSite]RootPathSite"
         }
         SPSite MySite
         {
             Url                         = "http://$SPSiteCollectionHostName/sites/my"
-            OwnerAlias                  = $SPInstallAccountCredential.UserName
+            OwnerAlias                  = $configParameters.SPInstallAccountCredential.UserName
             Template                    = "SPSMSITEHOST#0"
             HostHeaderWebApplication    = "http://$webAppHostName"
-            InstallAccount              = $SPInstallAccountCredential
+            InstallAccount              = $configParameters.SPInstallAccountCredential
             DependsOn                   = "[SPSite]RootPathSite"
         }
 
@@ -400,8 +299,8 @@ Configuration SP2013
             SocialDBName        = "SP_Social"
             SyncDBName          = "SP_ProfileSync"
             EnableNetBIOS       = $false
-            FarmAccount         = $SPFarmAccountCredential
-            InstallAccount      = $SPInstallAccountCredential
+            FarmAccount         = $configParameters.SPFarmAccountCredential
+            InstallAccount      = $configParameters.SPInstallAccountCredential
             DependsOn           = @("[SPServiceAppPool]SharePointServicesAppPool","[SPSite]MySite")
         }
 
@@ -409,7 +308,7 @@ Configuration SP2013
         {
             Name            = "Visio Graphics Service"
             ApplicationPool = "SharePoint Services App Pool"
-            InstallAccount  = $SPInstallAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPServiceAppPool]SharePointServicesAppPool"
         }
 
@@ -419,7 +318,7 @@ Configuration SP2013
             Ensure          = "Present"
             ApplicationPool = "SharePoint Services App Pool"
             DatabaseName    = "SP_WordAutomation"
-            InstallAccount  = $SPInstallAccountCredential
+            InstallAccount  = $configParameters.SPInstallAccountCredential
             DependsOn       = "[SPServiceAppPool]SharePointServicesAppPool"
         } 
     }

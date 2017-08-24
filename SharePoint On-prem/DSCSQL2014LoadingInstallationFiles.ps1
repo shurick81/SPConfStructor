@@ -11,33 +11,18 @@ Configuration SQL2014LoadingInstallationFiles
     Node $AllNodes.NodeName
     {
 
-        <#
-        $SQLImageUrlParts = $SQLImageUrl.Split("/");
-        $SQLImageFileName = $SQLImageUrlParts[$SQLImageUrlParts.Count - 1];
-        $SQLImageDestinationPath = "C:\Install\SQLImage\$SQLImageFileName"
-        #>
-
         $SQLImageUrl -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
         $SQLImageFileName = $matches[0]
-        $SQLImageDestinationPath = "C:\Install\SPImage\$SQLImageFileName"
-
+        $SQLImageDestinationPath = "C:\Install\SQLImage\$SQLImageFileName"
         xRemoteFile SQLServerImageFile
         {
             Uri = $SQLImageUrl
             DestinationPath = $SQLImageDestinationPath
         }
 
-        <#
-        xRemoteFile SQLServerImageFile
-        {
-            Uri = "http://care.dlservice.microsoft.com/dl/download/2/F/8/2F8F7165-BB21-4D1E-B5D8-3BD3CE73C77D/SQLServer2014SP1-FullSlipstream-x64-ENU.iso"
-            DestinationPath = "C:\Install\SQLImage\SQLServer2014SP1-FullSlipstream-x64-ENU.iso"
-        }
-        #>
-
         xMountImage SQLServerImageMount
         {
-            ImagePath   = "C:\Install\SQLImage\SQLServer2014SP1-FullSlipstream-x64-ENU.iso"
+            ImagePath   = $SQLImageDestinationPath
             DriveLetter = 'S'
             DependsOn   = "[xRemoteFile]SQLServerImageFile"
         }

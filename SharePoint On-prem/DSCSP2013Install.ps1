@@ -1,26 +1,12 @@
-Configuration SP2013Prepare
+Configuration SP2013Install
 {
     param(
         $configParameters,
-        $systemParameters
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullorEmpty()]
+        [PSCredential]
+        $LocalAdminCredential
     )
-
-    $localAdminUserName = $systemParameters.LocalAdminUserName;
-
-    # examining, generating and requesting credentials
-    
-        if ( !$localAdminCredential )
-        {
-            if ( $localAdminUserName )
-            {
-                $securedPassword = ConvertTo-SecureString $systemParameters.LocalAdminPassword -AsPlainText -Force
-                $localAdminCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$localAdminUserName", $securedPassword )
-            } else {
-                $localAdminCredential = Get-Credential -Message "Credential with local administrator privileges";
-            }
-        }
-
-    # credentials are ready
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DscResource -ModuleName xPendingReboot
@@ -29,9 +15,7 @@ Configuration SP2013Prepare
     Import-DSCResource -ModuleName SharePointDSC
     Import-DscResource -ModuleName xWebAdministration
 
-    $SPMachines = $configParameters.Machines | ? { ( $_.Roles -contains "WFE" ) -or ( $_.Roles -contains "BATCH" ) -or ( $_.Roles -contains "DistributedCache" ) -or ( $_.Roles -contains "SearchQuery" ) -or ( $_.Roles -contains "SearchCrawl" ) } | % { $_.Name }
-
-    Node $SPMachines
+    Node $AllNodes.NodeName
     {
         #Only needed for manual mof installation, not for automated?
         LocalConfigurationManager
@@ -76,8 +60,10 @@ Configuration SP2013Prepare
         
         SPInstallPrereqs SP2016Prereqs
         {
-            InstallerPath   = "C:\Install\SPExtracted\Prerequisiteinstaller.exe"
-            OnlineMode      = $true
+            InstallerPath           = "C:\Install\SPExtracted\Prerequisiteinstaller.exe"
+            OnlineMode              = $true
+            PsDscRunAsCredential    = $LocalAdminCredential
+            DependsOn               = "[xPendingReboot]RebootAfterNETUninstalling"
         }
 
         xPendingReboot RebootBeforeSPInstalling

@@ -1,4 +1,4 @@
-Configuration DomainPrepare
+Configuration DomainInstall
 {
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration

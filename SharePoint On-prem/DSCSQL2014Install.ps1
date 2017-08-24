@@ -1,35 +1,18 @@
-Configuration SQL2014Prepare
+Configuration SQL2014Install
 {
     param(
-        $configParameters
+        $configParameters,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullorEmpty()]
+        [PSCredential]
+        $SQLPassCredential
     )
-    $SQLPass = $configParameters.SQLPass;
-
-
-    # examining, generating and requesting credentials
-    
-        if ( !$SQLPassCredential )
-        {
-            if ( $SQLPass )
-            {
-                $securedPassword = ConvertTo-SecureString $SQLPass -AsPlainText -Force
-                $SQLPassCredential = New-Object System.Management.Automation.PSCredential( "anyidentity", $securedPassword )
-            } else {
-                $SQLPassCredential = Get-Credential -Message "Enter any user name and enter SQL SA password";
-            }
-        }
-
-    # credentials are ready
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile
     Import-DSCResource -ModuleName xNetworking
-    Import-DscResource -ModuleName xStorage
     Import-DSCResource -ModuleName xSQLServer -Name xSQLServerSetup
 
-    $SQLMachineNames = $configParameters.Machines | ? { $_.Roles -contains "SQL" } | % { $_.Name }
-
-    Node $SQLMachineNames
+    Node $AllNodes.NodeName
     {
         # Is it really needed when running via Azure Automation? or only manually
         LocalConfigurationManager

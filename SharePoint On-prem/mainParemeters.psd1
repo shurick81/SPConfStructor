@@ -1,7 +1,7 @@
 @{
     SPVersion = "2013"
     SPServicePack = "SP1"
-    SPCumulativeUpdate = "2017April"
+    SPCumulativeUpdate = ""
     SPLanguage = "English"
     SPLanguagePacks = @("Swedish")
     SPServices = @{
@@ -30,7 +30,6 @@
             Roles = "Admin"
             Memory = 1.5
             DiskSize = 30
-            ProvisioninngType = "URL"
             WinVersion = ""
             Image = ""
         }
@@ -40,27 +39,27 @@
             Roles = "SQL"
             Memory = 14
             DiskSize = 120
-            ProvisioninngType = "URL"
             WinVersion = "2016"
-            Image = ""
+            Image = "W2016SQL2014wSP1"
         }
         @{
             Name = "SP2013Ent01sp01"
             Roles = "SharePoint", "WFE", "Application", "DistributedCache", "SearchQuery", "SearchCrawl", "Code"
             Memory = 14
             DiskSize = 120
-            ProvisioninngType = "URL"
             WinVersion = "2012"
-            Image = ""
+            Image = "W2012SP2013wSP1"
         }
-        <#@{
+        <#
+        @{
             Name = "SP2013Ent01cl01"
             Roles = "Client"
             Memory = 1.5
             DiskSize = 30
             WinVersion = "10"
             Image = ""
-        }#>
+        }
+        #>
     )
     SearchIndexDirectory = "c:\SPSearchIndex"
     SPProductKey = "NQTMW-K63MQ-39G6H-B2CH9-FRDWJ"
