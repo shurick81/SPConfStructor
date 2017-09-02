@@ -174,15 +174,16 @@ $subscription = $null;
 $subscription = Get-AzureRmSubscription;
 if ( !$subscription )
 {
-    Login-AzureRmAccount
+    Login-AzureRmAccount | Out-Null;
 }
 
 if ( $azureParameters.DeleteResourceGroup )
 {
+    Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (0) -id 1 -CurrentOperation "Purging existing resource group";
     Remove-AzureRmResourceGroup -Name $azureParameters.ResourceGroupName -Force | Out-Null;
 }
 
-Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (0) -id 1 -CurrentOperation "Resource group promotion";
+Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (1) -id 1 -CurrentOperation "Resource group promotion";
 if ( $azureParameters.PrepareResourceGroup )
 {
     $resourceGroup = Get-AzureRmResourceGroup $resourceGroupName -ErrorAction Ignore;
@@ -257,6 +258,7 @@ function PrepareMachine ( $machineParameters ) {
 
     #Check machine sizes: Get-AzureRmVMSize -Location westeurope
     if ( $machineParameters.Memory -le 1.5 ) { $VMSize = "Basic_A1" } else { $VMSize = "Standard_D11_v2" }
+    if ( $machineParameters.Memory -gt 14 ) { $VMSize = "Standard_D12_v2" }
     # Check SKUS: Get-AzureRmVMImageSku -Location westeurope -PublisherName MicrosoftWindowsServer -Offer WindowsServer
     $offer = "WindowsServer";
     $skusPrefix = "2016";
