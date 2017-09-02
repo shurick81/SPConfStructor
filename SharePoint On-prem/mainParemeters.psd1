@@ -1,6 +1,6 @@
 @{
-    SPVersion = "2013"
-    SPServicePack = "SP1"
+    SPVersion = "2016"
+    SPServicePack = ""
     SPCumulativeUpdate = "2017Aug"
     SPLanguage = "English"
     SPLanguagePacks = @("Swedish")
@@ -11,13 +11,13 @@
     SPMultitenancy = $false
     DomainName = "sp.local"
     #machine name restriction: 15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
-    #roles: AD, SQL, WFE, Application, DistributedCache, SearchQuery, SearchCrawl, OOS, WFM, Addins, Admin, Code, Client, Configuration
+    #roles: AD, SQL, WFE, Application, DistributedCache, SearchQuery, SearchCrawl, SingleServerFarm, OOS, WFM, Addins, Admin, Code, Client, Configuration
     #SP 2013 software requirements: https://technet.microsoft.com/en-us/library/cc262485.aspx?f=255&MSPPError=-2147217396
-    # WinVersion options: "2012", "2012R2"
+    # WinVersion options: "2016", "2012R2", "2012"
     #ProvisioninngType options: Image, Url, Manual
     Machines = @(
         @{
-            Name = "SP2013Ent01dc01"
+            Name = "SP2016Ent01dc01"
             Roles = "AD"
             Memory = 1.5
             DiskSize = 30
@@ -35,44 +35,20 @@
         }
         #>
         @{
-            Name = "SP2013Ent01sq02"
+            Name = "SP2016Ent01sq01"
             Roles = "SQL"
             Memory = 14
             DiskSize = 120
             WinVersion = "2016"
-            Image = "W2016SQL2014wSP1"
+            Image = ""
         }
         @{
-            Name = "SP2013Ent01sp01"
-            Roles = "SharePoint", "WFE", "DistributedCache", "SearchQuery", "Code"
+            Name = "SP2016Ent01sp01"
+            Roles = "SharePoint", "SingleServerFarm", "Code", "Configuration"
             Memory = 14
             DiskSize = 120
-            WinVersion = "2012R2"
-            Image = "W2012R2SP2013wSP1"
-        }
-        @{
-            Name = "SP2013Ent01sp02"
-            Roles = "SharePoint", "WFE", "DistributedCache", "SearchQuery"
-            Memory = 14
-            DiskSize = 120
-            WinVersion = "2012R2"
-            Image = "W2012R2SP2013wSP1"
-        }
-        @{
-            Name = "SP2013Ent01sp03"
-            Roles = "SharePoint", "Application", "SearchCrawl"
-            Memory = 14
-            DiskSize = 120
-            WinVersion = "2012R2"
-            Image = "W2012R2SP2013wSP1"
-        }
-        @{
-            Name = "SP2013Ent01cf01"
-            Roles = "Code", "Configuration"
-            Memory = 1.5
-            DiskSize = 30
-            WinVersion = "10"
-            Image = "W10CodenConfig"
+            WinVersion = "2016"
+            Image = ""
         }
         <#
         @{
@@ -86,7 +62,7 @@
         #>
     )
     SearchIndexDirectory = "c:\SPSearchIndex"
-    SPProductKey = "NQTMW-K63MQ-39G6H-B2CH9-FRDWJ"
+    SPProductKey = "NQGJR-63HC8-XCRQH-MYVCH-3J3QR"
     DomainAdminUserName = "dauser1"
     DomainAdminPassword = "123$%^qweRTY"
     DomainSafeModeAdministratorPassword = "123$%^qweRTY"

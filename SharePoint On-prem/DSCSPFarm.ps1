@@ -1,4 +1,4 @@
-Configuration SP2013
+Configuration SPFarm
 {
     param(
         $configParameters,
@@ -53,7 +53,8 @@ Configuration SP2013
     $SearchMachines = $configParameters.Machines | ? { ( $_.Roles -contains "SearchQuery" ) -or ( $_.Roles -contains "SearchCrawl" ) } | % { $_.Name }
     $SearchQueryMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchQuery" } | % { $_.Name }
     $SearchCrawlerMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchCrawl" } | % { $_.Name }
-
+    $SPVersion = $configParameters.SPVersion;
+    
     if ( !$GranularApplying -or !$SearchTopologyGranule )
     {
         Node $SPMachines
@@ -101,21 +102,97 @@ Configuration SP2013
             #>
 
             $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
-            $runCentralAdmin = $machineParameters.Roles -contains "WFE"
-            SPFarm Farm
+            $isWFE = ( $machineParameters.Roles -contains "WFE" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
+            $isApplication = ( $machineParameters.Roles -contains "Application" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
+            $isDCNode = ( $machineParameters.Roles -contains "DistributedCache" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
+            $isSearchQuery = ( $machineParameters.Roles -contains "SearchQuery" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
+            $isSearchCrawl = ( $machineParameters.Roles -contains "SearchCrawl" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
+            
+            if ( $SPVersion -eq "2016" )
             {
-                Ensure                    = "Present"
-                DatabaseServer            = $configParameters.SPDatabaseAlias
-                FarmConfigDatabaseName    = "SP_Config"
-                AdminContentDatabaseName  = "SP_AdminContent"
-                Passphrase                = $SPPassphraseCredential
-                FarmAccount               = $SPFarmAccountCredential
-                RunCentralAdmin           = $runCentralAdmin
-                CentralAdministrationPort = 50555
-                InstallAccount            = $SPInstallAccountCredential
-                DependsOn                 = @( <#"[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient",#> "[xSQLServerAlias]SPDBAlias" )
-            }
+                # possible serverroles: Application, ApplicationWithSearch, Custom, DistributedCache, Search, SingleServer, SingleServerFarm, WebFrontEnd, WebFrontEndWithDistributedCache
+                $serverRole = $null;
+                if ( $isWFE -and !$isApplication -and !$isDCNode -and !( $isSearchQuery -or $isSearchCrawl ) ) { $serverRole = "WebFrontEnd" }
+                if ( !$isWFE -and !$isApplication -and $isDCNode -and !( $isSearchQuery -or $isSearchCrawl ) ) { $serverRole = "DistributedCache" }
+                if ( $isWFE -and !$isApplication -and $isDCNode -and !( $isSearchQuery -or $isSearchCrawl ) ) { $serverRole = "WebFrontEndWithDistributedCache" }
+                if ( !$isWFE -and $isApplication -and !$isDCNode -and !( $isSearchQuery -or $isSearchCrawl ) ) { $serverRole = "Application" }
+                if ( !$isWFE -and !$isApplication -and !$isDCNode -and ( $isSearchQuery -or $isSearchCrawl ) ) { $serverRole = "Search" }
+                if ( !$isWFE -and $isApplication -and !$isDCNode -and ( $isSearchQuery -or $isSearchCrawl ) ) { $serverRole = "ApplicationWithSearch" }
+                if ( !$serverRole ) { $serverRole = "SingleServerFarm" }
+                
+                SPFarm Farm
+                {
+                    Ensure                    = "Present"
+                    DatabaseServer            = $configParameters.SPDatabaseAlias
+                    FarmConfigDatabaseName    = "SP_Config"
+                    AdminContentDatabaseName  = "SP_AdminContent"
+                    Passphrase                = $SPPassphraseCredential
+                    FarmAccount               = $SPFarmAccountCredential
+                    RunCentralAdmin           = $isWFE
+                    CentralAdministrationPort = 50555
+                    ServerRole                = "SingleServerFarm"
+                    PsDscRunAsCredential      = $SPInstallAccountCredential
+                    DependsOn                 = @( <#"[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient",#> "[xSQLServerAlias]SPDBAlias" )
+                }
 
+            }
+            if ( $SPVersion -eq "2013" )
+            {
+                SPFarm Farm
+                {
+                    Ensure                    = "Present"
+                    DatabaseServer            = $configParameters.SPDatabaseAlias
+                    FarmConfigDatabaseName    = "SP_Config"
+                    AdminContentDatabaseName  = "SP_AdminContent"
+                    Passphrase                = $SPPassphraseCredential
+                    FarmAccount               = $SPFarmAccountCredential
+                    RunCentralAdmin           = $isWFE
+                    CentralAdministrationPort = 50555
+                    PsDscRunAsCredential      = $SPInstallAccountCredential
+                    DependsOn                 = @( <#"[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient",#> "[xSQLServerAlias]SPDBAlias" )
+                }
+
+                if ( $isWFE )
+                {
+
+                    SPServiceInstance AccessServices
+                    {
+                        Name                    = "Access Services"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance AccessServices2010
+                    {
+                        Name                    = "Access Services 2010"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance ManagedMetadataServiceInstance
+                    {
+                        Name                    = "Managed Metadata Web Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                }
+                if ( $isDCNode )
+                {
+
+                    SPDistributedCacheService EnableDistributedCache
+                    {
+                        Name                    = "AppFabricCachingService"
+                        CacheSizeInMB           = 2048
+                        ServiceAccount          = $SPServicesAccountCredential.UserName
+                        ServerProvisionOrder    = $DistributedCacheMachines
+                        CreateFirewallRules     = $true
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = "[SPFarm]Farm"
+                    }
+
+                }
+            }
             #this needs to be troubleshooted
             Registry LocalZone
             {
@@ -125,19 +202,6 @@ Configuration SP2013
                 ValueType               = "DWORD"
                 ValueData               = "1"
                 PsDscRunAsCredential    = $SPInstallAccountCredential
-            }
-
-        }
-
-        Node $WFEMachines
-        {
-
-            #WFE service instances. Options: https://www.powershellgallery.com/packages/SharePointDSC/1.6.0.0/Content/DSCResources%5CMSFT_SPServiceInstance%5CMSFT_SPServiceInstance.psm1
-            SPServiceInstance ManagedMetadataServiceInstance
-            {
-                Name                    = "Managed Metadata Web Service"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = @( "[SPFarm]Farm" )
             }
 
         }
@@ -169,7 +233,7 @@ Configuration SP2013
                 Url                     = "http://$webAppHostName"
                 DatabaseName            = "SP_Content_01"
                 AuthenticationMethod    = "NTLM"
-                PsDscRunAsCredential          = $SPInstallAccountCredential
+                PsDscRunAsCredential    = $SPInstallAccountCredential
                 DependsOn               = "[SPManagedAccount]ApplicationWebPoolAccount"
             }
 
@@ -371,24 +435,6 @@ Configuration SP2013
             }
 
         }
-
-        Node $DistributedCacheMachines
-        {
-
-            SPDistributedCacheService EnableDistributedCache
-            {
-                Name                    = "AppFabricCachingService"
-                CacheSizeInMB           = 2048
-                ServiceAccount          = $SPServicesAccountCredential.UserName
-                ServerProvisionOrder    = $DistributedCacheMachines
-                CreateFirewallRules     = $true
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPFarm]Farm"
-            }
-
-        }
-        
-        #Search
 
         Node $SearchQueryMachines
         {

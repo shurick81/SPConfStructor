@@ -1,4 +1,4 @@
-Configuration SP2013LoadingInstallationFiles
+Configuration SPLoadingInstallationFiles
 {
     param(
         $configParameters,

@@ -1,4 +1,4 @@
-Configuration SQL2014Install
+Configuration SQLInstall
 {
     param(
         $configParameters,
@@ -65,7 +65,7 @@ Configuration SQL2014Install
         {
             InstanceName        = "MSSQLServer"
             SourcePath          = $configParameters.SQLInstallationMediaPath
-            Features            = "SQLENGINE,FULLTEXT,SSMS"
+            Features            = "SQLENGINE,FULLTEXT"
             InstallSharedDir    = "C:\Program Files\Microsoft SQL Server"
             #Mixed authentication is needed for Access Services
             SecurityMode        = 'SQL'

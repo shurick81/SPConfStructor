@@ -3,7 +3,7 @@
     ImageStorageAccount = "development7950"
     #Where the SharePoint Image is located on your machine where you run the PowerShell script
     ImageLocalFolder = "D:\Install"
-    ResourceGroupName = "SP2013Ent01"
+    ResourceGroupName = "SP2016Ent01"
     ResourceGroupLocation = "westeurope"
     LocalAdminUserName = "splocaladm"
     LocalAdminPassword = "123$%^qweRTY"
@@ -11,16 +11,16 @@
     SubnetIpAddress = "192.168.0.0"
     DomainControllerIP = "192.168.0.4"
 
-    DeleteResourceGroup = $false
-    PrepareResourceGroup = $false
+    DeleteResourceGroup = $true
+    PrepareResourceGroup = $true
     CreateVMs = $true
-    PrepareMachines = $false
+    PrepareMachines = $true
     ADInstall = $true
     SQLImageSource = "Public"
     SQLImageLocation = "C:\Install\SQLImage"
     SQLImageUnpack = $true
     SQLInstall = $true
-    SPImageSource = "AzureBlob"
+    SPImageSource = "Public"
     #Valid names start and end with a lower case letter or a number and has in betweena lower case letter, number or dash with no consecutive dashes and is 3 through 63 characters long.
     SPImageAzureContainerName = "sp2013withsp1msdn"
     SPImageFolderUNC = ""
