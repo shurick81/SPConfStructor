@@ -179,7 +179,7 @@ if ( !$subscription )
 
 if ( $azureParameters.DeleteResourceGroup )
 {
-    .\azurePurge.ps1
+    Remove-AzureRmResourceGroup -Name $azureParameters.ResourceGroupName -Force | Out-Null;
 }
 
 Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (0) -id 1 -CurrentOperation "Resource group promotion";
@@ -539,7 +539,7 @@ if ( $azureParameters.ConfigureSharePoint )
         $SPMachines | % {
             $machineName = $_.Name;
             Write-Progress -Activity 'Applying SharePoint configuration' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
-            $configName = "SP$($SPVersion)";
+            $configName = "SPFarm";
             $configFileName = "DSC$configName.ps1";
             Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
             $configurationDataString = '@{ AllNodes = @( @{ NodeName = "' + $machineName + '"; PSDscAllowPlainTextPassword = $True } ) }';
@@ -581,7 +581,7 @@ if ( $azureParameters.ConfigureSharePoint )
             $tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
             $configurationDataString | Set-Content -Path $tempConfigDataFilePath
 
-            $configName = "SP$($SPVersion)";
+            $configName = "SPFarm";
             $configFileName = "DSC$configName.ps1";
             Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
             if ( $configParameters.SPVersion -eq "2013" ) { $configFileName = "DSCSP2013.ps1" } else { $configFileName = "DSCSP2016.ps1" }
@@ -590,12 +590,12 @@ if ( $azureParameters.ConfigureSharePoint )
             Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
         }
     }
-    if ( $SPMachineNames.Count -gt 1 )
+    if ( $SPMachineNames.Count -eq 1 )
     {
         $SPMachines | % {
             $machineName = $_.Name;
             Write-Progress -Activity 'Applying SharePoint configuration' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
-            $configName = "SP$($SPVersion)";
+            $configName = "SPFarm";
             $configFileName = "DSC$configName.ps1";
             Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
             $configurationDataString = '@{ AllNodes = @( @{ NodeName = "' + $machineName + '"; PSDscAllowPlainTextPassword = $True } ) }';
