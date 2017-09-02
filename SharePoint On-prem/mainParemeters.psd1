@@ -61,6 +61,8 @@
         }
         #>
     )
+    SPDatabaseServer = "SP2016Ent01sq01"
+    SPSiteCollectionHostName = "SP2013Ent01sp01.westeurope.cloudapp.azure.com"
     SearchIndexDirectory = "c:\SPSearchIndex"
     SPProductKey = "NQGJR-63HC8-XCRQH-MYVCH-3J3QR"
     DomainAdminUserName = "dauser1"
@@ -90,12 +92,10 @@
     SQLAdminGroupName = "SQL Admins" #not in use so far
     SPPassphrase = "123$%^qweRTY"
     SQLPass = "P@ssw0rd"
-    SPDatabaseServer = "SP2013Ent01sq01"
     SPDatabaseAlias = "SPDB"
     SQLInstallationMediaPath = "C:\Install\SQLMedia"
     SPInstallationMediaPath = "C:\Install\SPMedia"
     SSMSInstallationFolderPath = "C:\Install\SSMS"
-    SPSiteCollectionHostName = "SP2013Ent01sp01.westeurope.cloudapp.azure.com"
     SSMSVersion = "17.2"
     SPLogFolder = "C:\SPLogs"
 }
