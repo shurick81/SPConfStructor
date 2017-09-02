@@ -13,6 +13,9 @@ $configParameters = Import-PowershellDataFile $mainParametersFileName;
 $azureParameters = Import-PowershellDataFile $azureParametersFileName;
 $commonDictionary = Import-PowershellDataFile commonDictionary.psd1;
 
+$DomainName = $configParameters.DomainName;
+$shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
+
 $SPVersion = $configParameters.SPVersion;
 if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016" }
 
@@ -22,11 +25,19 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     if ( $domainAdminUserName )
     {
         $securedPassword = ConvertTo-SecureString $configParameters.DomainAdminPassword -AsPlainText -Force
-        $domainAdminCredential = New-Object System.Management.Automation.PSCredential( "$domainAdminUserName", $securedPassword )
+        $shortDomainAdminCredential = New-Object System.Management.Automation.PSCredential( "$domainAdminUserName", $securedPassword )
+    } else {
+        $shortDomainAdminCredential = Get-Credential -Message "Credential with domain administrator privileges";
+    }
+
+    $domainAdminUserName = $configParameters.DomainAdminUserName;
+    if ( $domainAdminUserName )
+    {
+        $securedPassword = ConvertTo-SecureString $configParameters.DomainAdminPassword -AsPlainText -Force
+        $domainAdminCredential = New-Object System.Management.Automation.PSCredential( "$shortDomainName\$domainAdminUserName", $securedPassword )
     } else {
         $domainAdminCredential = Get-Credential -Message "Credential with domain administrator privileges";
     }
-    $configParameters.DomainAdminCredential = $domainAdminCredential;
 
     $DomainSafeModeAdministratorPassword = $configParameters.DomainSafeModeAdministratorPassword;
     if ( $DomainSafeModeAdministratorPassword )
@@ -36,7 +47,6 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     } else {
         $DomainSafeModeAdministratorPasswordCredential = Get-Credential -Message "Enter any but not empty login and safe mode password";
     }
-    $configParameters.DomainSafeModeAdministratorPasswordCredential = $DomainSafeModeAdministratorPasswordCredential;
 
     $localAdminUserName = $azureParameters.LocalAdminUserName;
     if ( $localAdminUserName )
@@ -46,7 +56,6 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     } else {
         $localAdminCredential = Get-Credential -Message "Credential with local administrator privileges";
     }
-    $configParameters.LocalAdminCredential = $localAdminCredential;
 
     $SPInstallAccountUserName = $configParameters.SPInstallAccountUserName;
     if ( $SPInstallAccountUserName )
@@ -56,7 +65,6 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     } else {
         $SPInstallAccountCredential = Get-Credential -Message "Credential for SharePoint install account";
     }
-    $configParameters.SPInstallAccountCredential = $SPInstallAccountCredential;
 
     $SPFarmAccountUserName = $configParameters.SPFarmAccountUserName;
     if ( $SPFarmAccountUserName )
@@ -66,7 +74,6 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     } else {
         $SPFarmAccountCredential = Get-Credential -Message "Credential for SharePoint farm account";
     }
-    $configParameters.SPFarmAccountCredential = $SPFarmAccountCredential;
 
     $SPWebAppPoolAccountUserName = $configParameters.SPWebAppPoolAccountUserName;
     if ( $SPWebAppPoolAccountUserName )
@@ -76,7 +83,6 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     } else {
         $SPWebAppPoolAccountCredential = Get-Credential -Message "Credential for SharePoint Web Application app pool account";
     }
-    $configParameters.SPWebAppPoolAccountCredential = $SPWebAppPoolAccountCredential;
 
     $SPServicesAccountUserName = $configParameters.SPServicesAccountUserName;
     if ( $SPServicesAccountUserName )
@@ -86,7 +92,6 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     } else {
         $SPServicesAccountCredential = Get-Credential -Message "Credential for SharePoint shared services app pool";
     }
-    $configParameters.SPServicesAccountCredential = $SPServicesAccountCredential;
 
     $SPSearchServiceAccountUserName = $configParameters.SPSearchServiceAccountUserName;
     if ( $SPSearchServiceAccountUserName )
@@ -96,7 +101,6 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     } else {
         $SPSearchServiceAccountCredential = Get-Credential -Message "Credential for SharePoint search service account";
     }
-    $configParameters.SPSearchServiceAccountCredential = $SPSearchServiceAccountCredential;
 
     $SPCrawlerAccountUserName = $configParameters.SPCrawlerAccountUserName;
     if ( $SPCrawlerAccountUserName )
@@ -106,7 +110,6 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     } else {
         $SPCrawlerAccountCredential = Get-Credential -Message "Credential for SharePoint crawler account";
     }
-    $configParameters.SPCrawlerAccountCredential = $SPCrawlerAccountCredential;
 
     $SPTestAccountUserName = $configParameters.SPTestAccountUserName;
     if ( $SPTestAccountUserName )
@@ -116,7 +119,6 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     } else {
         $SPTestAccountCredential = Get-Credential -Message "Credential for SharePoint test user";
     }
-    $configParameters.SPTestAccountCredential = $SPTestAccountCredential;
 
     $SPSecondTestAccountUserName = $configParameters.SPSecondTestAccountUserName;
     if ( $SPSecondTestAccountUserName )
@@ -126,7 +128,6 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     } else {
         $SPSecondTestAccountCredential = Get-Credential -Message "Credential for SharePoint test user";
     }
-    $configParameters.SPSecondTestAccountCredential = $SPSecondTestAccountCredential;
 
     $SPOCAccountPass = ConvertTo-SecureString "Any3ligiblePa`$`$" -AsPlainText -Force;
     $SPOCAccountCredential = New-Object System.Management.Automation.PSCredential( "anyusername", $SPOCAccountPass );
@@ -163,7 +164,7 @@ $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
     DomainInstall -ConfigurationData $configurationData
     . .\DSCSPDomain.ps1
     SPDomain -ConfigurationData $configurationData -ConfigParameters $configParameters `
-        -DomainAdminCredential $DomainAdminCredential `
+        -ShortDomainAdminCredential $ShortDomainAdminCredential `
         -DomainSafeModeAdministratorPasswordCredential $DomainSafeModeAdministratorPasswordCredential `
         -SPInstallAccountCredential $SPInstallAccountCredential `
         -SPFarmAccountCredential $SPFarmAccountCredential `
@@ -184,11 +185,10 @@ $configParameters.Machines | ? { $_.Roles -contains "SQL" } | % {
     ) }
     if ( $configParameters.SPVersion -eq "2013" )
     {
-        $sqlImageUrl = $commonDictionary.SQLVersions[$SQLVersion].RTMImageUrl;
         . .\DSCSQL2014LoadingInstallationFiles.ps1
-        SQL2014LoadingInstallationFiles -ConfigurationData $configurationData -SQLImageUrl $sqlImageUrl
+        SQL2014LoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary
         . .\DSCSQL2014Install.ps1
-        SQL2014Install -ConfigurationData $configurationData -SQLPassCredential $configParameters.SQLPassCredential
+        SQL2014Install -ConfigurationData $configurationData -SQLPassCredential $configParameters.SQLPassCredential -LocalAdminCredential $LocalAdminCredential -MachineName $_.Name
     }
     if ( $configParameters.SPVersion -eq "2016" )
     {
@@ -204,21 +204,13 @@ $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % {
     ) }
     if ( $configParameters.SPVersion -eq "2013" )
     {
-        $spImageUrl = $commonDictionary.SPVersions[$SPVersion].RTMImageUrl;
-        $spServicePackUrl = $null;
-        $SPServicePack = $configParameters.SPServicePack;
-        if ( $SPServicePack -and ( $SPServicePack -ne "" ) )
-        {
-            $spServicePackUrl = $commonDictionary.SPVersions[$SPVersion].ServicePacks[$SPServicePack].Url;
-        }
-        $spCumulativeUpdateUrl = $null;
-        $SPCumulativeUpdate = $configParameters.SPCumulativeUpdate;
-        if ( $SPCumulativeUpdate -and ( $SPCumulativeUpdate -ne "" ) )
-        {
-            $spCumulativeUpdateUrl = $commonDictionary.SPVersions[$SPVersion].ServicePacks[$SPCumulativeUpdate].Url;
-        }
+        $storageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
+        . .\DSCSP2013Prepare.ps1
+        SP2013Prepare -ConfigurationData $configurationData -ConfigParameters $configParameters
+        . .\DSCSP2013AzureLoadingInstallationFiles.ps1
+        SP2013AzureLoadingInstallationFiles -ConfigurationData $configurationData -AzureParameters $azureParameters -AzureStorageAccountKey $storageAccountKey.Value
         . .\DSCSP2013LoadingInstallationFiles.ps1
-        SP2013LoadingInstallationFiles -ConfigurationData $configurationData -SPImageUrl $spImageUrl -SPServicePackUrl $spServicePackUrl -SPCumulativeUpdate $spCumulativeUpdateUrl
+        SP2013LoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary
         . .\DSCSP2013Install.ps1
         SP2013Install -ConfigurationData $configurationData -ConfigParameters $configParameters -LocalAdminCredential $LocalAdminCredential
     }
@@ -235,7 +227,16 @@ $configParameters.Machines | ? { !( $_.Roles -contains "AD" ) } | % {
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     ) }
     . .\DSCDomainClient.ps1
-    DomainClient -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters
+    DomainClient -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -DomainAdminCredential $DomainAdminCredential
+}
+
+#compiling configuration machines provisioning
+$configParameters.Machines | ? { $_.Roles -contains "Configuration" } | % {
+    $configurationData = @{ AllNodes = @(
+        @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
+    ) }
+    . .\DSCSPConfigurationTools.ps1
+    SPConfigurationTools -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary
 }
 
 #compiling SPFarm configuration
@@ -247,5 +248,12 @@ if ( $SPMachines )
         $configurationData.AllNodes += @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     }
     . .\DSCSP2013.ps1
-    SP2013 -ConfigurationData $configurationData -ConfigParameters $configParameters
+    SP2013 -ConfigurationData $configurationData -ConfigParameters $configParameters `
+        -SPPassphraseCredential $SPPassphraseCredential `
+        -SPInstallAccountCredential $SPInstallAccountCredential `
+        -SPFarmAccountCredential $SPFarmAccountCredential `
+        -SPWebAppPoolAccountCredential $SPWebAppPoolAccountCredential `
+        -SPServicesAccountCredential $SPServicesAccountCredential `
+        -SPSearchServiceAccountCredential $SPSearchServiceAccountCredential `
+        -SPCrawlerAccountCredential $SPCrawlerAccountCredential
 }

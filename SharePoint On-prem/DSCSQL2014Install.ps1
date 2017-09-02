@@ -5,11 +5,17 @@ Configuration SQL2014Install
         [Parameter(Mandatory=$true)]
         [ValidateNotNullorEmpty()]
         [PSCredential]
-        $SQLPassCredential
+        $SQLPassCredential,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullorEmpty()]
+        [PSCredential]
+        $LocalAdminCredential,
+        $machineName
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DSCResource -ModuleName xNetworking
+    Import-DscResource -ModuleName xPendingReboot
     Import-DSCResource -ModuleName xSQLServer -Name xSQLServerSetup
 
     Node $AllNodes.NodeName
@@ -20,6 +26,14 @@ Configuration SQL2014Install
             RebootNodeIfNeeded = $true;
         }
         
+        #Local DB admin group
+        Group DBAdminGroup
+        {
+            GroupName           = "DBAdmins"
+            Credential          = $LocalAdminCredential
+            MembersToInclude    = "$machineName\$($LocalAdminCredential.UserName)"
+        }
+
         xFireWall SQLFirewallRule
         {
             Name        = "AllowSQLConnection"
@@ -41,17 +55,23 @@ Configuration SQL2014Install
             Ensure = "Present"
         }
 
+        xPendingReboot RebootBeforeSQLInstalling
+        { 
+            Name        = 'BeforeSQLInstalling'
+            DependsOn   = "[WindowsFeature]NetFramework35Core"
+        }
+
         xSQLServerSetup SQLSetup
         {
             InstanceName        = "MSSQLServer"
-            SourcePath          = "C:\Install\SQLExtracted"
+            SourcePath          = $configParameters.SQLInstallationMediaPath
             Features            = "SQLENGINE,FULLTEXT,SSMS"
             InstallSharedDir    = "C:\Program Files\Microsoft SQL Server"
             #Mixed authentication is needed for Access Services
             SecurityMode        = 'SQL'
-            SQLSysAdminAccounts = 'Builtin\Administrators'
+            SQLSysAdminAccounts = "$machineName\DBAdmins"
             SAPwd               = $SQLPassCredential
-            DependsOn           = "[WindowsFeature]NetFramework35Core"
+            DependsOn           = @( "[Group]DBAdminGroup", "[xPendingReboot]RebootBeforeSQLInstalling" )
         }
         
     }

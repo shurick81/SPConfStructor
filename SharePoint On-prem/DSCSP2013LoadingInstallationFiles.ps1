@@ -1,70 +1,115 @@
 Configuration SP2013LoadingInstallationFiles
 {
     param(
-        $SPImageUrl,
-        $SPServicePackURL,
-        $SPCumulativeUpdateURL
+        $configParameters,
+        $systemParameters,
+        $commonDictionary
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile
     Import-DscResource -ModuleName xStorage
 
+    $SPImageLocation = $systemParameters.SPImageLocation
+    $SPInstallationMediaPath = $configParameters.SPInstallationMediaPath
+    $SPVersion = $configParameters.SPVersion;
+
     Node $AllNodes.NodeName
     {
-        $SPImageUrl -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
-        $SPImageFileName = $matches[0]
-        $SPImageDestinationPath = "C:\Install\SPImage\$SPImageFileName"
-        xRemoteFile SPServerImageFile
+        if ( $systemParameters.SPImageSource -eq "Public" )
         {
-            Uri             = $SPImageUrl
-            DestinationPath = $SPImageDestinationPath
-        }
+            $spImageUrl = $commonDictionary.SPVersions[$SPVersion].RTMImageUrl;
+            $SPImageUrl -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
+            $SPImageFileName = $matches[0]
+            $SPImageDestinationPath = "$SPImageLocation\$SPImageFileName"
 
-        xMountImage SPServerImageMount
-        {
-            ImagePath   = $SPImageDestinationPath
-            DriveLetter = 'S'
-            DependsOn   = @("[xRemoteFile]SPServerImageFile")
-        }
-
-        xWaitForVolume WaitForSPServerImageMount
-        {
-            DriveLetter         = 'S'
-            RetryIntervalSec    = 5
-            RetryCount          = 10
-            DependsOn           = "[xMountImage]SPServerImageMount"
-        }
-
-        File SPServerInstallatorDirectory
-        {
-            Ensure          = "Present"
-            Type            = "Directory"
-            Recurse         = $true
-            SourcePath      = "S:\"
-            DestinationPath = "C:\Install\SPExtracted"
-            DependsOn       = "[xWaitForVolume]WaitForSPServerImageMount"
-        }
-
-        if ( ( $SPServicePackURL ) -and ( $SPServicePackURL -ne "" ) )
-        {
-            $SPServicePackURL -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
-            $SPServicePackFileName = $matches[0]
-            xRemoteFile SPServicePackFile
+            xRemoteFile SPServerImageFile
             {
-                Uri             = "$SPServicePackURL"
-                DestinationPath = "C:\Install\SPExtracted\Updates\$SPServicePackFileName"
+                Uri             = $SPImageUrl
+                DestinationPath = $SPImageDestinationPath
+            }
+            
+        }
+        if ( $systemParameters.SPImageUnpack )
+        {
+
+            if ( $systemParameters.SPImageSource -eq "Public" )
+            {
+                $SPImagePath = "$SPImageLocation\$SPImageFileName"
+                xMountImage SPServerImageMount
+                {
+                    ImagePath   = $SPImagePath
+                    DriveLetter = 'S'
+                    DependsOn   = @("[xRemoteFile]SPServerImageFile")
+                }
+            
+            } else {
+                $SPImageFileName = $systemParameters.SPImageFileName
+                $SPImagePath = "$SPImageLocation\$SPImageFileName"
+                xMountImage SPServerImageMount
+                {
+                    ImagePath   = $SPImagePath
+                    DriveLetter = 'S'
+                }
+
+            }
+            xWaitForVolume WaitForSPServerImageMount
+            {
+                DriveLetter         = 'S'
+                RetryIntervalSec    = 5
+                RetryCount          = 10
+                DependsOn           = "[xMountImage]SPServerImageMount"
+            }
+
+            File SPServerInstallatorDirectory
+            {
+                Ensure          = "Present"
+                Type            = "Directory"
+                Recurse         = $true
+                SourcePath      = "S:\"
+                DestinationPath = $SPInstallationMediaPath
+                DependsOn       = "[xWaitForVolume]WaitForSPServerImageMount"
+            }
+
+        }
+
+        $SPServicePack = $configParameters.SPServicePack;
+        if ( $SPServicePack -and ( $SPServicePack -ne "" ) )
+        {
+            if ( $systemParameters.SPServicePackSource -eq "Public" )
+            {
+                $spServicePackUrl = $commonDictionary.SPVersions[$SPVersion].ServicePacks[$SPServicePack].Url;
+                $SPServicePackURL -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
+                $SPServicePackFileName = $matches[0]
+
+                xRemoteFile SPServicePackFile
+                {
+                    Uri             = "$SPServicePackURL"
+                    DestinationPath = "$SPInstallationMediaPath\Updates\$SPServicePackFileName"
+                }
+
             }
         }
 
-        if ( ( $SPCumulativeUpdateURL ) -and ( $SPCumulativeUpdateURL -ne "" ) )
+        if ( $systemParameters.SPCumulativeUpdateSource -eq "Public" )
         {
-            $SPCumulativeUpdateURL -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
-            $SPCumulativeUpdateFileName = $matches[0]
-            xRemoteFile SPCumulativeUpdateFile
+            $SPCumulativeUpdate = $configParameters.SPCumulativeUpdate;
+            if ( $SPCumulativeUpdate -and ( $SPCumulativeUpdate -ne "" ) )
             {
-                Uri             = "$SPCumulativeUpdateURL"
-                DestinationPath = "C:\Install\SPExtracted\Updates\$SPCumulativeUpdateFileName"
+                $spCumulativeUpdateUrls = $commonDictionary.SPVersions[$SPVersion].CumulativeUpdates[$SPCumulativeUpdate].Urls;
+                $SPCumulativeUpdateUrls | % {
+                    $SPCumulativeUpdateUrl = $_
+                    $SPCumulativeUpdateUrl -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
+                    $SPCumulativeUpdateFileName = $matches[0]
+
+                    xRemoteFile "SPCumulativeUpdateFile$counter"
+                    {
+                        Uri             = "$SPCumulativeUpdateURL"
+                        DestinationPath = "$SPInstallationMediaPath\Updates\$SPCumulativeUpdateFileName"
+                    }
+
+                    $counter++;
+                }
             }
         }
 

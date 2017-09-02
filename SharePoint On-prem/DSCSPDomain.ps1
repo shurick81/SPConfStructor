@@ -5,7 +5,7 @@ Configuration SPDomain
         [Parameter(Mandatory=$true)]
         [ValidateNotNullorEmpty()]
         [PSCredential]
-        $DomainAdminCredential,
+        $ShortDomainAdminCredential,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullorEmpty()]
         [PSCredential]
@@ -74,7 +74,7 @@ Configuration SPDomain
         xADDomain ADDomain
         {
             DomainName                      = $configParameters.DomainName
-            DomainAdministratorCredential   = $DomainAdminCredential
+            DomainAdministratorCredential   = $ShortDomainAdminCredential
             SafemodeAdministratorPassword   = $DomainSafeModeAdministratorPasswordCredential
             DependsOn                       = @("[WindowsFeatureSet]DomainFeatures", "[xRemoteDesktopAdmin]DCRDPSettings")
         }
@@ -82,7 +82,7 @@ Configuration SPDomain
         xWaitForADDomain WaitForDomain
         {
             DomainName              = $configParameters.DomainName
-            DomainUserCredential    = $DomainAdminCredential
+            DomainUserCredential    = $ShortDomainAdminCredential
             RetryCount              = 100
             RetryIntervalSec        = 10
             DependsOn               = "[xADDomain]ADDomain"

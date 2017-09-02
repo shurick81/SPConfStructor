@@ -2,7 +2,11 @@ Configuration DomainClient
 {
     param(
         $configParameters,
-        $systemParameters
+        $systemParameters,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullorEmpty()]
+        [PSCredential]
+        $DomainAdminCredential
     )
     $DomainName = $configParameters.DomainName;
     $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
@@ -10,43 +14,63 @@ Configuration DomainClient
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DSCResource -ModuleName xDSCDomainJoin
     Import-DSCResource -ModuleName xNetworking
+    Import-DscResource -ModuleName xCredSSP
     
-
-    Node $DomainClientMachines
+    Node $AllNodes.NodeName
     {        
         if ( $systemParameters.DomainControllerIP )
         {
+            $interfaceAlias = "Ethernet"
+            $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
+            if ( $machineParameters.WinVersion -eq "2016" )
+            {
+                $interfaceAlias = "Ethernet 3"
+            }
 
             xDNSServerAddress DNSClient
             {
-                Address         = $systemParameters.DomainControllerIP
                 AddressFamily   = "IPv4"
-                InterfaceAlias  = "Ethernet 3"
+                InterfaceAlias  = $interfaceAlias
+                Address         = $systemParameters.DomainControllerIP
             }
 
             xDSCDomainJoin DomainJoin
             {
                 Domain      = $configParameters.DomainName
-                Credential  = $configParameters.DomainAdminCredential
+                Credential  = $DomainAdminCredential
                 DependsOn   = @("[xDNSServerAddress]DNSClient")
             }
 
-        } else {       
+        } else {
+
             xDSCDomainJoin DomainJoin
             {
                 Domain      = $configParameters.DomainName
-                Credential  = $configParameters.DomainAdminCredential
+                Credential  = $DomainAdminCredential
             }
+
         }
+
         #Local group
         Group AdminGroup
         {
             GroupName           = "Administrators"
-            Credential          = $configParameters.DomainAdminCredential
+            Credential          = $DomainAdminCredential
             MembersToInclude    = "$shortDomainName\$($configParameters.SPAdminGroupName)"
             DependsOn           = "[xDSCDomainJoin]DomainJoin"
         }
-                
+
+        if ( $machineParameters.Roles -contains "SQL" )
+        {
+            Group DBAdminGroup
+            {
+                GroupName           = "DBAdmins"
+                Credential          = $DomainAdminCredential
+                MembersToInclude    = "$shortDomainName\$($configParameters.SPAdminGroupName)"
+                DependsOn           = "[xDSCDomainJoin]DomainJoin"
+            }
+        }
+
     }
 }
 

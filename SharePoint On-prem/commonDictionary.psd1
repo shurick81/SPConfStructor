@@ -9,16 +9,29 @@
                 }
             }
             "CumulativeUpdates" = @{
-                
+                "2017Aug" = @{
+                    "URLs" = @(
+                        "https://download.microsoft.com/download/5/C/8/5C8CE634-282C-45D6-AB9C-98E8C494859F/ubersrv_1.cab",
+                        "https://download.microsoft.com/download/5/C/8/5C8CE634-282C-45D6-AB9C-98E8C494859F/ubersrv_2.cab",
+                        "https://download.microsoft.com/download/5/C/8/5C8CE634-282C-45D6-AB9C-98E8C494859F/ubersrv2013-kb4011076-fullfile-x64-glb.exe"
+                    )
+                }
             }
             "LanguagePacks" = @{
 
             }
         }
         "2016" = @{
-            "RTMImageUrl" = ""
-            "SlipStreamedWithSP1ImageUrl" = ""
-            "ServicePacks" = ""
+            "RTMImageUrl" = "http://care.dlservice.microsoft.com/dl/download/0/0/4/004EE264-7043-45BF-99E3-3F74ECAE13E5/officeserver.img"
+            "ServicePacks" = @{}
+            "CumulativeUpdates" = @{
+                "2017Aug" = @{
+                    "URLs" = @(
+                        "https://download.microsoft.com/download/5/A/D/5AD38E0C-641A-44BA-AFFC-8E65D69A2C93/sts2016-kb4011049-fullfile-x64-glb.exe",
+                        "https://download.microsoft.com/download/2/C/0/2C0D85B0-158F-459B-8807-AB77D8BE0923/wssloc2016-kb4011053-fullfile-x64-glb.exe"
+                    )
+                }
+            }
         }
     }
     "SQLVersions" = @{
@@ -27,7 +40,7 @@
         }
         "2016" = @{}
     }
-    "SMSVersions" = @{
+    "SSMSVersions" = @{
         "17.1" = @{
             URL = "https://download.microsoft.com/download/5/0/B/50B02ECB-CB5C-4C23-A1D3-DAB4467604DA/SSMS-Setup-ENU.exe"
             ProductId = "b636c6f4-2183-4b76-b5a0-c8d6422df9f4"

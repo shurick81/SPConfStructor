@@ -1,7 +1,7 @@
 @{
     SPVersion = "2013"
     SPServicePack = "SP1"
-    SPCumulativeUpdate = ""
+    SPCumulativeUpdate = "2017Aug"
     SPLanguage = "English"
     SPLanguagePacks = @("Swedish")
     SPServices = @{
@@ -9,11 +9,11 @@
         AccessService = $true
     }
     SPMultitenancy = $false
-    DomainName = "sharepoint.local"
+    DomainName = "sp.local"
     #machine name restriction: 15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
-    #roles: AD, SQL, WFE, Application, DistributedCache, SearchQuery, SearchCrawl, OOS, WFM, Addins, Admin, Code, Client
+    #roles: AD, SQL, WFE, Application, DistributedCache, SearchQuery, SearchCrawl, OOS, WFM, Addins, Admin, Code, Client, Configuration
     #SP 2013 software requirements: https://technet.microsoft.com/en-us/library/cc262485.aspx?f=255&MSPPError=-2147217396
-    #Default WinVersion is 2016. other options: "2012", "2012R2"
+    # WinVersion options: "2012", "2012R2"
     #ProvisioninngType options: Image, Url, Manual
     Machines = @(
         @{
@@ -35,7 +35,7 @@
         }
         #>
         @{
-            Name = "SP2013Ent01sq01"
+            Name = "SP2013Ent01sq02"
             Roles = "SQL"
             Memory = 14
             DiskSize = 120
@@ -44,11 +44,35 @@
         }
         @{
             Name = "SP2013Ent01sp01"
-            Roles = "SharePoint", "WFE", "Application", "DistributedCache", "SearchQuery", "SearchCrawl", "Code"
+            Roles = "SharePoint", "WFE", "DistributedCache", "SearchQuery", "Code"
             Memory = 14
             DiskSize = 120
-            WinVersion = "2012"
-            Image = "W2012SP2013wSP1"
+            WinVersion = "2012R2"
+            Image = "W2012R2SP2013wSP1"
+        }
+        @{
+            Name = "SP2013Ent01sp02"
+            Roles = "SharePoint", "WFE", "DistributedCache", "SearchQuery"
+            Memory = 14
+            DiskSize = 120
+            WinVersion = "2012R2"
+            Image = "W2012R2SP2013wSP1"
+        }
+        @{
+            Name = "SP2013Ent01sp03"
+            Roles = "SharePoint", "Application", "SearchCrawl"
+            Memory = 14
+            DiskSize = 120
+            WinVersion = "2012R2"
+            Image = "W2012R2SP2013wSP1"
+        }
+        @{
+            Name = "SP2013Ent01cf01"
+            Roles = "Code", "Configuration"
+            Memory = 1.5
+            DiskSize = 30
+            WinVersion = "10"
+            Image = "W10CodenConfig"
         }
         <#
         @{
@@ -87,9 +111,15 @@
     SPAdminGroupName = "SP Admins"
     SPMemberGroupName = "SP Members"
     SPVisitorGroupName = "SP Visitors"
+    SQLAdminGroupName = "SQL Admins" #not in use so far
     SPPassphrase = "123$%^qweRTY"
     SQLPass = "P@ssw0rd"
-    SPDatabaseServer = "SP2013Ent01sp01"
+    SPDatabaseServer = "SP2013Ent01sq01"
     SPDatabaseAlias = "SPDB"
+    SQLInstallationMediaPath = "C:\Install\SQLMedia"
+    SPInstallationMediaPath = "C:\Install\SPMedia"
+    SSMSInstallationFolderPath = "C:\Install\SSMS"
     SPSiteCollectionHostName = "SP2013Ent01sp01.westeurope.cloudapp.azure.com"
+    SSMSVersion = "17.2"
+    SPLogFolder = "C:\SPLogs"
 }

@@ -5,8 +5,6 @@ Configuration SP2013Install
         [Parameter(Mandatory=$true)]
         [ValidateNotNullorEmpty()]
         [PSCredential]
-        #Needed?
-        $LocalAdminCredential
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -20,13 +18,8 @@ Configuration SP2013Install
 
     Node $AllNodes.NodeName
     {
-        $logFolder = $configParameters.SPLogFolder;
-        #Only needed for manual mof installation, not for automated?
-        LocalConfigurationManager
-        {
-            RebootNodeIfNeeded = $true;
-        }
-        
+        $logFolder = $configParameters.SPLogFolder;       
+
         File LogFolder
         {
             Type            = "Directory"
