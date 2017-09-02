@@ -46,13 +46,13 @@ Configuration SPFarm
     Import-DSCResource -ModuleName xSQLServer -Name xSQLServerAlias
     Import-DSCResource -ModuleName SharePointDSC
 
-    $SPMachines = $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % { $_.Name }
-    $WFEMachines = $configParameters.Machines | ? { $_.Roles -contains "WFE" } | % { $_.Name }
-    $ApplicationMachines = $configParameters.Machines | ? { $_.Roles -contains "Application" } | % { $_.Name }
-    $DistributedCacheMachines = $configParameters.Machines | ? { $_.Roles -contains "DistributedCache" } | % { $_.Name }
-    $SearchMachines = $configParameters.Machines | ? { ( $_.Roles -contains "SearchQuery" ) -or ( $_.Roles -contains "SearchCrawl" ) } | % { $_.Name }
-    $SearchQueryMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchQuery" } | % { $_.Name }
-    $SearchCrawlerMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchCrawl" } | % { $_.Name }
+    $SPMachines = $configParameters.Machines | ? { ( $_.Roles -contains "SharePoint" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
+    $WFEMachines = $configParameters.Machines | ? { ( $_.Roles -contains "WFE" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
+    $ApplicationMachines = $configParameters.Machines | ? { ( $_.Roles -contains "Application" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
+    $DistributedCacheMachines = $configParameters.Machines | ? { ( $_.Roles -contains "DistributedCache" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
+    $SearchMachines = $configParameters.Machines | ? { ( $_.Roles -contains "SearchQuery" ) -or ( $_.Roles -contains "SearchCrawl" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
+    $SearchQueryMachines = $configParameters.Machines | ? { ( $_.Roles -contains "SearchQuery" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
+    $SearchCrawlerMachines = $configParameters.Machines | ? { ( $_.Roles -contains "SearchCrawl" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
     $SPVersion = $configParameters.SPVersion;
     
     if ( !$GranularApplying -or !$SearchTopologyGranule )
@@ -164,7 +164,7 @@ Configuration SPFarm
 
                     SPServiceInstance AccessServices2010
                     {
-                        Name                    = "Access Services 2010"
+                        Name                    = "Access Database Service 2010"
                         PsDscRunAsCredential    = $SPInstallAccountCredential
                         DependsOn               = @( "[SPFarm]Farm" )
                     }
@@ -462,7 +462,7 @@ Configuration SPFarm
 
             SPServiceAppPool SharePointSearchServiceAppPool
             {
-                Name                    = "SharePoint Services App Pool"
+                Name                    = "SharePoint Search App Pool"
                 ServiceAccount          = $SPSearchServiceAccountCredential.UserName
                 PsDscRunAsCredential    = $SPInstallAccountCredential
                 DependsOn               = "[SPManagedAccount]SharePointSearchServicePoolAccount"
@@ -472,7 +472,7 @@ Configuration SPFarm
             {  
                 Name                    = "Search Service Application"
                 DatabaseName            = "SP_Search"
-                ApplicationPool         = "SharePoint Service Applications"
+                ApplicationPool         = "SharePoint Search App Pool"
                 PsDscRunAsCredential    = $SPInstallAccountCredential
                 DependsOn               = "[SPServiceAppPool]SharePointSearchServiceAppPool"
             }

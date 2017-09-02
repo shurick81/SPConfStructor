@@ -24,7 +24,7 @@ Configuration DomainClient
         {
             $interfaceAlias = "Ethernet"
             $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
-            if ( $machineParameters.WinVersion -eq "2016" )
+            if ( ( $machineParameters.WinVersion -eq "2016" ) -or ( $machineParameters.WinVersion -eq "2012" ) )
             {
                 $interfaceAlias = "Ethernet 3"
             }
