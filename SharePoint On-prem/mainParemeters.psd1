@@ -17,6 +17,15 @@
     #ProvisioninngType options: Image, Url, Manual
     Machines = @(
         @{
+            Name = "SP2016Ent01sp01"
+            Roles = "AD", "SharePoint", "SingleServerFarm", "Code", "Configuration"
+            Memory = 14
+            DiskSize = 120
+            WinVersion = "2016"
+            Image = ""
+        }
+        <#
+        @{
             Name = "SP2016Ent01dc01"
             Roles = "AD"
             Memory = 1.5
@@ -24,6 +33,7 @@
             WinVersion = ""
             Image = ""
         }
+        #>
         <#
         @{
             Name = "SP2013Ent01adm"
@@ -34,6 +44,7 @@
             Image = ""
         }
         #>
+        <#
         @{
             Name = "SP2016Ent01sq01"
             Roles = "SQL"
@@ -50,6 +61,7 @@
             WinVersion = "2016"
             Image = ""
         }
+        #>
         <#
         @{
             Name = "SP2013Ent01cl01"
@@ -61,6 +73,8 @@
         }
         #>
     )
+    SPDatabaseServer = "SP2013Ent01sq01"
+    SPSiteCollectionHostName = "SP2013Ent01sp01.westeurope.cloudapp.azure.com"
     SearchIndexDirectory = "c:\SPSearchIndex"
     SPProductKey = "NQGJR-63HC8-XCRQH-MYVCH-3J3QR"
     DomainAdminUserName = "dauser1"
@@ -90,12 +104,10 @@
     SQLAdminGroupName = "SQL Admins" #not in use so far
     SPPassphrase = "123$%^qweRTY"
     SQLPass = "P@ssw0rd"
-    SPDatabaseServer = "SP2013Ent01sq01"
     SPDatabaseAlias = "SPDB"
     SQLInstallationMediaPath = "C:\Install\SQLMedia"
     SPInstallationMediaPath = "C:\Install\SPMedia"
     SSMSInstallationFolderPath = "C:\Install\SSMS"
-    SPSiteCollectionHostName = "SP2013Ent01sp01.westeurope.cloudapp.azure.com"
     SSMSVersion = "17.2"
     SPLogFolder = "C:\SPLogs"
 }

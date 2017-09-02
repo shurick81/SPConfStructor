@@ -39,7 +39,7 @@ Configuration SPFarm
     $logFolder = $configParameters.SPLogFolder;
 
     $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
-    $webAppHostName = "SP2013_01.$DomainName";
+    $webAppHostName = "SPWA_01.$DomainName";
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DSCResource -ModuleName xNetworking
