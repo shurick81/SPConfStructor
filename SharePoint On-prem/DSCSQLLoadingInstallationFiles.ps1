@@ -1,4 +1,4 @@
-Configuration SQL2014LoadingInstallationFiles
+Configuration SQLLoadingInstallationFiles
 {
     param(
         $configParameters,

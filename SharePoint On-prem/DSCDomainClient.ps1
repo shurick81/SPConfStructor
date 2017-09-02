@@ -14,7 +14,9 @@ Configuration DomainClient
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DSCResource -ModuleName xDSCDomainJoin
     Import-DSCResource -ModuleName xNetworking
+    <#
     Import-DscResource -ModuleName xCredSSP
+    #>
     
     Node $AllNodes.NodeName
     {        

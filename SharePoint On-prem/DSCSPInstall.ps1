@@ -1,4 +1,4 @@
-Configuration SP2013Install
+Configuration SPInstall
 {
     param(
         $configParameters,

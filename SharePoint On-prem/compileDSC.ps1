@@ -154,6 +154,12 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     $configParameters.SPPassphraseCredential = $SPPassphraseCredential;
 
 # credentials are ready
+$subscription = $null;
+$subscription = Get-AzureRmSubscription;
+if ( !$subscription )
+{
+    Login-AzureRmAccount
+}
 
 #compiling domain
 $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
@@ -183,18 +189,10 @@ $configParameters.Machines | ? { $_.Roles -contains "SQL" } | % {
     $configurationData = @{ AllNodes = @(
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     ) }
-    if ( $configParameters.SPVersion -eq "2013" )
-    {
-        . .\DSCSQL2014LoadingInstallationFiles.ps1
-        SQL2014LoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary
-        . .\DSCSQL2014Install.ps1
-        SQL2014Install -ConfigurationData $configurationData -SQLPassCredential $configParameters.SQLPassCredential -LocalAdminCredential $LocalAdminCredential -MachineName $_.Name
-    }
-    if ( $configParameters.SPVersion -eq "2016" )
-    {
-        . .\DSCSQL2016.ps1
-        SQL2016 -ConfigurationData $configurationData -ConfigParameters $configParameters
-    }
+    . .\DSCSQLLoadingInstallationFiles.ps1
+    SQLLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary
+    . .\DSCSQLInstall.ps1
+    SQLInstall -ConfigurationData $configurationData -SQLPassCredential $configParameters.SQLPassCredential -LocalAdminCredential $LocalAdminCredential -MachineName $_.Name
 }
 
 #compiling SP machine preparation config
@@ -202,23 +200,15 @@ $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % {
     $configurationData = @{ AllNodes = @(
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     ) }
-    if ( $configParameters.SPVersion -eq "2013" )
-    {
-        $storageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
-        . .\DSCSP2013Prepare.ps1
-        SP2013Prepare -ConfigurationData $configurationData -ConfigParameters $configParameters
-        . .\DSCSP2013AzureLoadingInstallationFiles.ps1
-        SP2013AzureLoadingInstallationFiles -ConfigurationData $configurationData -AzureParameters $azureParameters -AzureStorageAccountKey $storageAccountKey.Value
-        . .\DSCSP2013LoadingInstallationFiles.ps1
-        SP2013LoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary
-        . .\DSCSP2013Install.ps1
-        SP2013Install -ConfigurationData $configurationData -ConfigParameters $configParameters -LocalAdminCredential $LocalAdminCredential
-    }
-    if ( $configParameters.SPVersion -eq "2016" )
-    {
-        . .\DSCSQL2016.ps1
-        SQL2016 -ConfigurationData $configurationData -ConfigParameters $configParameters
-    }
+    $storageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
+    . .\DSCSP2013Prepare.ps1
+    SP2013Prepare -ConfigurationData $configurationData -ConfigParameters $configParameters
+    . .\DSCSP2013AzureLoadingInstallationFiles.ps1
+    SP2013AzureLoadingInstallationFiles -ConfigurationData $configurationData -AzureParameters $azureParameters -AzureStorageAccountKey $storageAccountKey.Value
+    . .\DSCSPLoadingInstallationFiles.ps1
+    SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary
+    . .\DSCSPInstall.ps1
+    SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -LocalAdminCredential $LocalAdminCredential
 }
 
 #compiling domain machine adding
@@ -247,8 +237,8 @@ if ( $SPMachines )
     $SPMachines | ? { $_.Roles -contains "SharePoint" } | % {
         $configurationData.AllNodes += @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     }
-    . .\DSCSP2013.ps1
-    SP2013 -ConfigurationData $configurationData -ConfigParameters $configParameters `
+    . .\DSCSPFarm.ps1
+    SPFarm -ConfigurationData $configurationData -ConfigParameters $configParameters `
         -SPPassphraseCredential $SPPassphraseCredential `
         -SPInstallAccountCredential $SPInstallAccountCredential `
         -SPFarmAccountCredential $SPFarmAccountCredential `

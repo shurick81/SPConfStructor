@@ -38,7 +38,9 @@
         "2014" = @{
             "RTMImageUrl" = "http://care.dlservice.microsoft.com/dl/download/2/F/8/2F8F7165-BB21-4D1E-B5D8-3BD3CE73C77D/SQLServer2014SP1-FullSlipstream-x64-ENU.iso"
         }
-        "2016" = @{}
+        "2016" = @{
+            "RTMImageUrl" = "http://care.dlservice.microsoft.com/dl/download/F/E/9/FE9397FA-BFAB-4ADD-8B97-91234BC774B2/SQLServer2016-x64-ENU.iso"
+        }
     }
     "SSMSVersions" = @{
         "17.1" = @{
