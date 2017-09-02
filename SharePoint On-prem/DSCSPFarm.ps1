@@ -462,7 +462,7 @@ Configuration SPFarm
 
             SPServiceAppPool SharePointSearchServiceAppPool
             {
-                Name                    = "SharePoint Search Services App Pool"
+                Name                    = "SharePoint Search App Pool"
                 ServiceAccount          = $SPSearchServiceAccountCredential.UserName
                 PsDscRunAsCredential    = $SPInstallAccountCredential
                 DependsOn               = "[SPManagedAccount]SharePointSearchServicePoolAccount"
@@ -472,7 +472,7 @@ Configuration SPFarm
             {  
                 Name                    = "Search Service Application"
                 DatabaseName            = "SP_Search"
-                ApplicationPool         = "SharePoint Service Applications"
+                ApplicationPool         = "SharePoint Search App Pool"
                 PsDscRunAsCredential    = $SPInstallAccountCredential
                 DependsOn               = "[SPServiceAppPool]SharePointSearchServiceAppPool"
             }

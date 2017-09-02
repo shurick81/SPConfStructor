@@ -408,7 +408,7 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
 
 $azurePreparationPercentage = 3;
 $numberOfMachines = $configParameters.Machines.Count
-$machinePercentage = ( 100 - $azurePreparationPercentage ) / ( $numberOfMachines + 1)
+$machinePercentage = ( 70 - $azurePreparationPercentage ) / ( $numberOfMachines + 1)
 
 $machineCounter = 0;
 if ( $azureParameters.CreateVMs )
