@@ -208,7 +208,7 @@ $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % {
     . .\DSCSPLoadingInstallationFiles.ps1
     SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary
     . .\DSCSPInstall.ps1
-    SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -LocalAdminCredential $LocalAdminCredential;
+    SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters;
 }
 
 #compiling domain machine adding
