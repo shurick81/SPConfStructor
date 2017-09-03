@@ -272,14 +272,13 @@ function CreateMachine ( $machineParameters ) {
             Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
             Set-AzureRmVMSourceImage -Id $image.Id | `
             Add-AzureRmVMNetworkInterface -Id $nic.Id
-        New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
     } else {
         $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize | `
             Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
             Set-AzureRmVMSourceImage -PublisherName MicrosoftWindowsServer -Offer $offer -Skus $skus -Version latest | `
             Add-AzureRmVMNetworkInterface -Id $nic.Id
-        New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
     }
+    New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
 }
 function PrepareMachine ( $machineParameters ) {
     if ( $azureParameters.PrepareMachines )
@@ -407,71 +406,71 @@ $numberOfMachines = $configParameters.Machines.Count
 $machinePercentage = ( 70 - $azurePreparationPercentage ) / ( $numberOfMachines + 1)
 
 $machineCounter = 0;
-if ( $azureParameters.CreateVMs )
-{
-    $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name $vnetName;
-    $subnetId = $vnet.Subnets[0].Id;
+$vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name $vnetName;
+$subnetId = $vnet.Subnets[0].Id;
 
-    $configParameters.Machines | % {
-        Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete ( $azurePreparationPercentage + $machineCounter * $machinePercentage ) -id 1;
-        $machineName = $_.Name;
-        $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $machineName -ErrorAction Ignore;
+$configParameters.Machines | % {
+    Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete ( $azurePreparationPercentage + $machineCounter * $machinePercentage ) -id 1;
+    $machineName = $_.Name;
+    $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $machineName -ErrorAction Ignore;
+    if ( $_.Image -and ( $_.Image -ne "" ) )
+    {
         if ( !$vm )
         {
-            if ( $_.Image -and ( $_.Image -ne "" ) )
-            {
-                $image = $null;
-                $image = Get-AzureRMImage -ResourceGroupName $azureParameters.ImageResourceGroupName -ImageName $_.Image -ErrorAction SilentlyContinue;
-                if ( !$image ) {
-                    $templateMachineName = "TemplateMachine";
-                    $templateMachineParameters = @{
-                        Name = $templateMachineName
-                        Roles = $_.Roles
-                        Memory = $_.Memory
-                        DiskSize = $_.DiskSize
-                        WinVersion = $_.WinVersion
-                    }
-                    CreateMachine $templateMachineParameters;  
-                    PrepareMachine $templateMachineParameters;
-                    
-                    Write-Progress -Activity 'Extracting image from template VM' -PercentComplete (60) -ParentId 1 -CurrentOperation $templateMachineName;
-                    Write-Host "$(Get-Date) Deploying sysprep extension on $templateMachineName"
-                    $containerName = "psscripts";
-                    $fileName = "sysprep.ps1"
-                    Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName;
-                    $existingStorageContainer = $null;
-                    $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
-                    if ( !$existingStorageContainer )
-                    {
-                        New-AzureStorageContainer -Name $containerName -Permission Off | Out-Null;
-                    }
-                    Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force | Out-Null;
-                    Set-AzureRmVMCustomScriptExtension -VM $templateMachineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName
-
-                    Write-Host "$(Get-Date) Stopping $templateMachineName"
-                    Stop-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null
-                    sleep 300;
-                    Write-Host "$(Get-Date) Generalizing $templateMachineName"
-                    Set-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Generalized | Out-Null
-                    sleep 300;
-                    Write-Host "$(Get-Date) Extracting image $templateMachineName"
-                    $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName;
-                    $image = New-AzureRmImageConfig -Location $resourceGroupLocation -SourceVirtualMachineId $vm.ID;
-                    New-AzureRmImage -Image $image -ImageName $_.Image -ResourceGroupName $azureParameters.ImageResourceGroupName;
-                    sleep 300;
-
-                    Write-Progress -Activity 'Removing template machine' -PercentComplete (70) -ParentId 1 -CurrentOperation $machineName;
-                    Remove-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null;
-                    Write-Progress -Activity 'Machines creation via template' -PercentComplete (80) -ParentId 1 -CurrentOperation $machineName;
+            $image = $null;
+            $image = Get-AzureRMImage -ResourceGroupName $azureParameters.ImageResourceGroupName -ImageName $_.Image -ErrorAction SilentlyContinue;
+            if ( !$image ) {
+                $templateMachineName = "TemplateMachine";
+                $templateMachineParameters = @{
+                    Name = $templateMachineName
+                    Roles = $_.Roles
+                    Memory = $_.Memory
+                    DiskSize = $_.DiskSize
+                    WinVersion = $_.WinVersion
                 }
-                CreateMachine $_;
-            } else {
-                CreateMachine $_;
-                PrepareMachine $_;
+                CreateMachine $templateMachineParameters;  
+                PrepareMachine $templateMachineParameters;
+                
+                Write-Progress -Activity 'Extracting image from template VM' -PercentComplete (60) -ParentId 1 -CurrentOperation $templateMachineName;
+                Write-Host "$(Get-Date) Deploying sysprep extension on $templateMachineName"
+                $containerName = "psscripts";
+                $fileName = "sysprep.ps1"
+                Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName;
+                $existingStorageContainer = $null;
+                $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
+                if ( !$existingStorageContainer )
+                {
+                    New-AzureStorageContainer -Name $containerName -Permission Off | Out-Null;
+                }
+                Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force | Out-Null;
+                Set-AzureRmVMCustomScriptExtension -VM $templateMachineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName
+
+                Write-Host "$(Get-Date) Stopping $templateMachineName"
+                Stop-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null
+                sleep 300;
+                Write-Host "$(Get-Date) Generalizing $templateMachineName"
+                Set-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Generalized | Out-Null
+                sleep 300;
+                Write-Host "$(Get-Date) Extracting image $templateMachineName"
+                $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName;
+                $image = New-AzureRmImageConfig -Location $resourceGroupLocation -SourceVirtualMachineId $vm.ID;
+                New-AzureRmImage -Image $image -ImageName $_.Image -ResourceGroupName $azureParameters.ImageResourceGroupName;
+                sleep 300;
+
+                Write-Progress -Activity 'Removing template machine' -PercentComplete (70) -ParentId 1 -CurrentOperation $machineName;
+                Remove-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null;
+                Write-Progress -Activity 'Machines creation via template' -PercentComplete (80) -ParentId 1 -CurrentOperation $machineName;
             }
+            CreateMachine $_;
         }
-        $machineCounter++;
+    } else {
+        if ( !$vm )
+        {
+            CreateMachine $_;
+        }
+        PrepareMachine $_;
     }
+    $machineCounter++;
 }
 
 #Domain deploying
