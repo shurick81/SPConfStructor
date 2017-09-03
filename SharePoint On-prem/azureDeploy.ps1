@@ -314,7 +314,7 @@ function PrepareMachine ( $machineParameters ) {
         if ( $machineParameters.Roles -contains "SQL" )
         {
             Write-Progress -Activity 'Loading SQL installation files' -PercentComplete (20) -ParentId 1 -CurrentOperation $machineName;            
-            if ( $azureParameters.PrepareMachines -and ( ( $azureParameters.SQLImageSource -eq "Public" ) -or $azureParameters.SQLImageUnpack ) )
+            if ( ( $azureParameters.SQLImageSource -eq "Public" ) -or $azureParameters.SQLImageUnpack )
             {
                 $configName = "SQLLoadingInstallationFiles";
                 $configFileName = "DSC$configName.ps1";
