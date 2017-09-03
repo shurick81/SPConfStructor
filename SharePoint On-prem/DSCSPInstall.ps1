@@ -1,10 +1,7 @@
 Configuration SPInstall
 {
     param(
-        $configParameters,
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullorEmpty()]
-        [PSCredential]
+        $configParameters
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
