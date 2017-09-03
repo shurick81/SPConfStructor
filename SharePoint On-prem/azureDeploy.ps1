@@ -502,6 +502,7 @@ if ( $azureParameters.ADConfigure )
             SPOCAccountCredential = $SPOCAccountCredential
             SPTestAccountCredential = $SPTestAccountCredential
             SPSecondTestAccountCredential = $SPSecondTestAccountCredential
+            MachineName = $machineName
         }
         Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
     }
