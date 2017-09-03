@@ -34,18 +34,30 @@ Configuration SPInstall
             OnlineMode      = $true
         }
 
+        if ( $configParameters.SPVersion -eq "2016" )
+        {
+
+            xPendingReboot RebootAfterSPPrereqsInstalling
+            { 
+                Name        = 'AfterSPPrereqsInstalling'
+                DependsOn   = "[SPInstallPrereqs]SPPrereqs"
+            }
+
+            $installationDependsOn = "[xPendingReboot]RebootAfterSPPrereqsInstalling"
+        } else { $installationDependsOn = "" }
+        
         SPInstall InstallSharePoint 
         { 
             Ensure      = "Present"
             BinaryDir   = $configParameters.SPInstallationMediaPath
             ProductKey  = $configParameters.SPProductKey
-            DependsOn   = "[SPInstallPrereqs]SPPrereqs"
+            DependsOn   = $installationDependsOn
         }
 
         xIISLogging RootWebAppIISLogging
         {
             LogPath     = "$logFolder\IIS"
-            DependsOn   = "[SPInstallPrereqs]SPPrereqs","[File]LogFolder"
+            DependsOn   = "[xPendingReboot]RebootAfterSPPrereqsInstalling","[File]LogFolder"
         }
 
         xPendingReboot RebootAfterSPInstalling

@@ -182,14 +182,27 @@ Configuration SPDomain
 
         if ( ( $configParameters.Machines | ? { $_.Name -eq $machineName } ).Roles -contains "SQL" )
         {
+
+            xADGroup DomainDBAdminGroup
+            {
+                GroupName           = "DBAdmins"
+                Members             = $configParameters.SPAdminGroupName
+                DependsOn           = "[xADGroup]SPAdminGroup"
+            }
+
+        }
+        if ( ( $configParameters.Machines | ? { $_.Name -eq $machineName } ).Roles -contains "SharePoint" )
+        {
+       
             xADGroup DomainAdminGroup
             {
-                GroupName           = "Administrators"
-                Ensure              = "Present"
-                MembersToInclude    = "$shortDomainName\$($configParameters.SPAdminGroupName)"
+                GroupName           = "Domain Admins"
+                MembersToInclude    = $configParameters.SPAdminGroupName
                 DependsOn           = "[xADGroup]SPAdminGroup"
-            }    
+            }
+
         }
+
         xADGroup SPMemberGroup
         {
             GroupName           = $configParameters.SPMemberGroupName

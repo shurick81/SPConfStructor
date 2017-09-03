@@ -370,18 +370,20 @@ function PrepareMachine ( $machineParameters ) {
                 }
                 Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
-            Write-Progress -Activity 'SharePoint server installation media composing' -PercentComplete (55) -CurrentOperation $machineName -ParentId 1;
-            $configName = "SPLoadingInstallationFiles";
-            $configFileName = "DSC$configName.ps1";
-            Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
-            Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
-            $configurationArguments = @{
-                ConfigParameters = $configParameters
-                SystemParameters = $azureParameters
-                CommonDictionary = $commonDictionary
+            if ( ( $azureParameters.SPImageSource -eq "Public" ) -or $azureParameters.SPImageUnpack )
+            {
+                Write-Progress -Activity 'SharePoint server installation media composing' -PercentComplete (55) -CurrentOperation $machineName -ParentId 1;
+                $configName = "SPLoadingInstallationFiles";
+                $configFileName = "DSC$configName.ps1";
+                Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+                Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
+                $configurationArguments = @{
+                    ConfigParameters = $configParameters
+                    SystemParameters = $azureParameters
+                    CommonDictionary = $commonDictionary
+                }
+                Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
-            Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
-
             if ( $azureParameters.SPInstall )
             {
                 Write-Progress -Activity 'SharePoint binaries installation' -PercentComplete (50) -CurrentOperation $machineName -ParentId 1;
@@ -480,7 +482,7 @@ if ( $azureParameters.ADConfigure )
     $ADMachines = $configParameters.Machines | ? { $_.Roles -contains "AD" }
     $ADMachines | % {
         $machineName = $_.Name;
-        Write-Progress -Activity 'Joining domain' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
+        Write-Progress -Activity 'Configuring domain' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
         $configName = "SPDomain"
         $configFileName = "DSC$configName.ps1";
         Write-Host "$(Get-Date) Deploying $configName extension on $machineName"

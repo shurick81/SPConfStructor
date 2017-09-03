@@ -69,6 +69,7 @@ Configuration SQLInstall
             $SQLSysAdminAccounts = "BUILTIN\Administrators"
             $SQLDependsOn = @( "[xPendingReboot]RebootBeforeSQLInstalling" )
         }
+
         xSQLServerSetup SQLSetup
         {
             InstanceName        = "MSSQLServer"
@@ -81,7 +82,33 @@ Configuration SQLInstall
             SAPwd               = $SQLPassCredential
             DependsOn           = $SQLDependsOn
         }
+        <#
+        if ( !( ( $configParameters.Machines | ? { $_.Name -eq $machineName } ).Roles -contains "AD" ) )
+        {
+            $membersToInclude = "$machineName\$($LocalAdminCredential.UserName)"
+        } else {
+            $membersToInclude = "$machineName\Administrators"
+        }
+        Group DBAdminGroup
+        {
+            GroupName           = "DBAdmins"
+            Credential          = $LocalAdminCredential
+            MembersToInclude    = $membersToInclude
+        }
 
+        xSQLServerSetup SQLSetup
+        {
+            InstanceName        = "MSSQLServer"
+            SourcePath          = $configParameters.SQLInstallationMediaPath
+            Features            = "SQLENGINE,FULLTEXT"
+            InstallSharedDir    = "C:\Program Files\Microsoft SQL Server"
+            #Mixed authentication is needed for Access Services
+            SecurityMode        = 'SQL'
+            SQLSysAdminAccounts = "$machineName\DBAdmins"
+            SAPwd               = $SQLPassCredential
+            DependsOn           = @( "[Group]DBAdminGroup", "[xPendingReboot]RebootBeforeSQLInstalling" )
+        }
+        #>
     }
 }
 
