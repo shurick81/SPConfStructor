@@ -152,8 +152,93 @@ Configuration SPFarm
                     DependsOn                 = @( <#"[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient",#> "[xSQLServerAlias]SPDBAlias" )
                 }
 
+                if ( $isWFE -or $isApplication -or $isSearchCrawl )
+                {
+
+                    SPServiceInstance SharePointFoundationWebApplication
+                    {
+                        Name                    = "Microsoft SharePoint Foundation Web Application"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                }
+                if ( $isWFE -or $isApplication )
+                {
+
+                    SPServiceInstance AppManagementService
+                    {
+                        Name                    = "App Management Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance BusinessDataConnectivityService
+                    {
+                        Name                    = "Business Data Connectivity Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance Claims2WindowsTokenService
+                    {
+                        Name                    = "Claims to Windows Token Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance MachineTranslationService
+                    {
+                        Name                    = "Machine Translation Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance ManagedMetadataServiceInstance
+                    {
+                        Name                    = "Managed Metadata Web Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance SubscriptionSettingsService
+                    {
+                        Name                    = "Microsoft SharePoint Foundation Subscription Settings Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance RequestManagement
+                    {
+                        Name                    = "Request Management"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance SecureStoreService
+                    {
+                        Name                    = "Secure Store Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance UserProfileService
+                    {
+                        Name                    = "User Profile Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                }
                 if ( $isWFE )
                 {
+
+                    SPServiceInstance AccessDatabaseService2010
+                    {
+                        Name                    = "Access Database Service 2010"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
 
                     SPServiceInstance AccessServices
                     {
@@ -162,16 +247,30 @@ Configuration SPFarm
                         DependsOn               = @( "[SPFarm]Farm" )
                     }
 
-                    SPServiceInstance AccessServices2010
+                    SPServiceInstance ExcelCalculationServices
                     {
-                        Name                    = "Access Database Service 2010"
+                        Name                    = "Excel Calculation Services"
                         PsDscRunAsCredential    = $SPInstallAccountCredential
                         DependsOn               = @( "[SPFarm]Farm" )
                     }
 
-                    SPServiceInstance ManagedMetadataServiceInstance
+                    SPServiceInstance SandboxedCodeService
                     {
-                        Name                    = "Managed Metadata Web Service"
+                        Name                    = "Microsoft SharePoint Foundation Sandboxed Code Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance PerformancePointService
+                    {
+                        Name                    = "PerformancePoint Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance VisioGraphicsService
+                    {
+                        Name                    = "Visio Graphics Service"
                         PsDscRunAsCredential    = $SPInstallAccountCredential
                         DependsOn               = @( "[SPFarm]Farm" )
                     }
@@ -189,6 +288,24 @@ Configuration SPFarm
                         CreateFirewallRules     = $true
                         PsDscRunAsCredential    = $SPInstallAccountCredential
                         DependsOn               = "[SPFarm]Farm"
+                    }
+
+                }
+                if ( $isApplication )
+                {
+
+                    SPServiceInstance WordAutomationServices
+                    {
+                        Name                    = "Word Automation Services"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance WorkflowTimerService
+                    {
+                        Name                    = "Microsoft SharePoint Foundation Workflow Timer Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
                     }
 
                 }
