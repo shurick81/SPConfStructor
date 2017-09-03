@@ -1,5 +1,5 @@
 @{
-    SPVersion = "2016"
+    SPVersion = "2013"
     SPServicePack = ""
     SPCumulativeUpdate = "2017Aug"
     SPLanguage = "English"
@@ -17,23 +17,13 @@
     #ProvisioninngType options: Image, Url, Manual
     Machines = @(
         @{
-            Name = "SP2016Ent01sp01"
-            Roles = "AD", "SharePoint", "SingleServerFarm", "Code", "Configuration"
-            Memory = 14
-            DiskSize = 120
-            WinVersion = "2016"
-            Image = ""
-        }
-        <#
-        @{
-            Name = "SP2016Ent01dc01"
+            Name = "SP2013Ent01dc01"
             Roles = "AD"
             Memory = 1.5
             DiskSize = 30
             WinVersion = ""
             Image = ""
         }
-        #>
         <#
         @{
             Name = "SP2013Ent01adm"
@@ -44,9 +34,8 @@
             Image = ""
         }
         #>
-        <#
         @{
-            Name = "SP2016Ent01sq01"
+            Name = "SP2013Ent01sq01"
             Roles = "SQL"
             Memory = 14
             DiskSize = 120
@@ -54,14 +43,21 @@
             Image = ""
         }
         @{
-            Name = "SP2016Ent01sp01"
-            Roles = "SharePoint", "SingleServerFarm", "Code", "Configuration"
+            Name = "SP2013Ent01sp01"
+            Roles = "SharePoint", "WFE", "DistributedCache", "SearchQuery", "Configuration"
             Memory = 14
             DiskSize = 120
-            WinVersion = "2016"
+            WinVersion = "2012"
             Image = ""
         }
-        #>
+        @{
+            Name = "SP2013Ent01sp01"
+            Roles = "SharePoint", "Application", "SearchCrawl"
+            Memory = 14
+            DiskSize = 120
+            WinVersion = "2012"
+            Image = ""
+        }
         <#
         @{
             Name = "SP2013Ent01cl01"
@@ -73,10 +69,10 @@
         }
         #>
     )
-    SPDatabaseServer = "SP2016Ent01sq01"
+    SPDatabaseServer = "SP2013Ent01sq01"
     SPSiteCollectionHostName = "SP2013Ent01sp01.westeurope.cloudapp.azure.com"
     SearchIndexDirectory = "c:\SPSearchIndex"
-    SPProductKey = "NQGJR-63HC8-XCRQH-MYVCH-3J3QR"
+    SPProductKey = "NQTMW-K63MQ-39G6H-B2CH9-FRDWJ"
     DomainAdminUserName = "dauser1"
     DomainAdminPassword = "123$%^qweRTY"
     DomainSafeModeAdministratorPassword = "123$%^qweRTY"

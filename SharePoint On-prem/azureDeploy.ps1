@@ -217,6 +217,7 @@ if ( $azureParameters.PrepareResourceGroup )
 }
 
 function CreateMachine ( $machineParameters ) {
+    Write-Progress -Activity 'Machines creation' -PercentComplete (0) -ParentId 1 -CurrentOperation $machineName;            
     $machineName = $machineParameters.Name;
     $publicIpName = ( $machineName + "IP" );
     $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName -Name $publicIpName -ErrorAction Ignore;
@@ -277,11 +278,10 @@ function CreateMachine ( $machineParameters ) {
             Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
             Set-AzureRmVMSourceImage -PublisherName MicrosoftWindowsServer -Offer $offer -Skus $skus -Version latest | `
             Add-AzureRmVMNetworkInterface -Id $nic.Id
+        New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
     }
 }
 function PrepareMachine ( $machineParameters ) {
-    Write-Progress -Activity 'Machines creation' -PercentComplete (0) -ParentId 1 -CurrentOperation $machineName;            
-    New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
     if ( $azureParameters.PrepareMachines )
     {           
         if ( $machineParameters.WinVersion -eq "2012" ) {
@@ -409,11 +409,11 @@ $machinePercentage = ( 70 - $azurePreparationPercentage ) / ( $numberOfMachines 
 $machineCounter = 0;
 if ( $azureParameters.CreateVMs )
 {
-    Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete ( $azurePreparationPercentage + $machineCounter * $machinePercentage ) -id 1;
     $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name $vnetName;
     $subnetId = $vnet.Subnets[0].Id;
 
     $configParameters.Machines | % {
+        Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete ( $azurePreparationPercentage + $machineCounter * $machinePercentage ) -id 1;
         $machineName = $_.Name;
         $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $machineName -ErrorAction Ignore;
         if ( !$vm )
@@ -470,6 +470,7 @@ if ( $azureParameters.CreateVMs )
                 PrepareMachine $_;
             }
         }
+        $machineCounter++;
     }
 }
 

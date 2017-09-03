@@ -3,7 +3,7 @@
     ImageStorageAccount = "development7950"
     #Where the SharePoint Image is located on your machine where you run the PowerShell script
     ImageLocalFolder = "D:\Install"
-    ResourceGroupName = "SP2016Ent01"
+    ResourceGroupName = "SP2013Ent01"
     ResourceGroupLocation = "westeurope"
     LocalAdminUserName = "splocaladm"
     LocalAdminPassword = "123$%^qweRTY"
@@ -11,8 +11,8 @@
     SubnetIpAddress = "192.168.0.0"
     DomainControllerIP = "192.168.0.4"
 
-    DeleteResourceGroup = $true
-    PrepareResourceGroup = $true
+    DeleteResourceGroup = $false
+    PrepareResourceGroup = $false
     CreateVMs = $true
     PrepareMachines = $true
     ADInstall = $true
