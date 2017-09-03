@@ -17,6 +17,15 @@
     #ProvisioninngType options: Image, Url, Manual
     Machines = @(
         @{
+            Name = "SP2016Ent01sp01"
+            Roles = "AD", "SharePoint", "SingleServerFarm", "Code", "Configuration"
+            Memory = 14
+            DiskSize = 120
+            WinVersion = "2016"
+            Image = ""
+        }
+        <#
+        @{
             Name = "SP2016Ent01dc01"
             Roles = "AD"
             Memory = 1.5
@@ -24,6 +33,7 @@
             WinVersion = ""
             Image = ""
         }
+        #>
         <#
         @{
             Name = "SP2013Ent01adm"
@@ -34,6 +44,7 @@
             Image = ""
         }
         #>
+        <#
         @{
             Name = "SP2016Ent01sq01"
             Roles = "SQL"
@@ -50,6 +61,7 @@
             WinVersion = "2016"
             Image = ""
         }
+        #>
         <#
         @{
             Name = "SP2013Ent01cl01"

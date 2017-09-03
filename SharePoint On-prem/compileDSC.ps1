@@ -180,8 +180,8 @@ $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
         -SPCrawlerAccountCredential $SPCrawlerAccountCredential `
         -SPOCAccountCredential $SPOCAccountCredential `
         -SPTestAccountCredential $SPTestAccountCredential `
-        -SPSecondTestAccountCredential $SPSecondTestAccountCredential
-
+        -SPSecondTestAccountCredential $SPSecondTestAccountCredential `
+        -MachineName $_.Name
 }
 
 #compiling SQL
@@ -192,7 +192,7 @@ $configParameters.Machines | ? { $_.Roles -contains "SQL" } | % {
     . .\DSCSQLLoadingInstallationFiles.ps1
     SQLLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary
     . .\DSCSQLInstall.ps1
-    SQLInstall -ConfigurationData $configurationData -SQLPassCredential $configParameters.SQLPassCredential -LocalAdminCredential $LocalAdminCredential -MachineName $_.Name
+    SQLInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -SQLPassCredential $configParameters.SQLPassCredential -LocalAdminCredential $LocalAdminCredential -MachineName $_.Name
 }
 
 #compiling SP machine preparation config
@@ -208,7 +208,7 @@ $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % {
     . .\DSCSPLoadingInstallationFiles.ps1
     SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary
     . .\DSCSPInstall.ps1
-    SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -LocalAdminCredential $LocalAdminCredential
+    SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -LocalAdminCredential $LocalAdminCredential;
 }
 
 #compiling domain machine adding
