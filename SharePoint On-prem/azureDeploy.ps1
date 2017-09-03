@@ -395,8 +395,6 @@ function PrepareMachine ( $machineParameters ) {
                     Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
                     $configurationArguments = @{
                         ConfigParameters = $configParameters
-                        #Needed?
-                        LocalAdminCredential = $LocalAdminCredential
                     }
                     Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
                 }
