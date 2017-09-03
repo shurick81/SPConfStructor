@@ -217,8 +217,9 @@ if ( $azureParameters.PrepareResourceGroup )
 }
 
 function CreateMachine ( $machineParameters ) {
-    Write-Progress -Activity 'Machines creation' -PercentComplete (0) -ParentId 1 -CurrentOperation $machineName;            
     $machineName = $machineParameters.Name;
+    Write-Host "$(Get-Date) Creating $machineName machine"
+    Write-Progress -Activity 'Machine creation' -PercentComplete (0) -ParentId 1 -CurrentOperation $machineName;            
     $publicIpName = ( $machineName + "IP" );
     $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName -Name $publicIpName -ErrorAction Ignore;
     if ( !$pip )
@@ -264,7 +265,8 @@ function CreateMachine ( $machineParameters ) {
     
     if ( $machineParameters.Roles -contains "AD" ) { $vmCredential = $ShortDomainAdminCredential } else { $vmCredential = $LocalAdminCredential }
 
-    if ( $machineParameters.Image -and ( $machineParameters.Image -ne "" ) )
+    $imageParameter = $machineParameters.Image;
+    if ( $imageParameter -and ( $imageParameter -ne "" ) )
     {
         $image = $null;
         $image = Get-AzureRMImage -ResourceGroupName $azureParameters.ImageResourceGroupName -ImageName $machineParameters.Image;
@@ -397,6 +399,22 @@ function PrepareMachine ( $machineParameters ) {
                 Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
         }
+        if ( $machineParameters.Roles -contains "SharePoint" )
+        {
+            if ( $azureParameters.ConfigurationToolsInstallation )
+            {
+                Write-Progress -Activity 'Configuration tools installing' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
+                $configName = "SPConfigurationTools"
+                $configFileName = "DSC$configName.ps1";
+                Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+                Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
+                $configurationArguments = @{
+                    ConfigParameters = $configParameters
+                    CommonDictionary = $commonDictionary
+                }
+                Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            }
+        }
     }
 }
 
@@ -423,6 +441,7 @@ $configParameters.Machines | % {
             $image = Get-AzureRMImage -ResourceGroupName $azureParameters.ImageResourceGroupName -ImageName $_.Image -ErrorAction SilentlyContinue;
             if ( !$image ) {
                 $templateMachineName = "TemplateMachine";
+                Write-Host "$(Get-Date) Creating $templateMachineName temporary"
                 $templateMachineParameters = @{
                     Name = $templateMachineName
                     Roles = $_.Roles
@@ -436,7 +455,7 @@ $configParameters.Machines | % {
                 Write-Progress -Activity 'Extracting image from template VM' -PercentComplete (60) -ParentId 1 -CurrentOperation $templateMachineName;
                 Write-Host "$(Get-Date) Deploying sysprep extension on $templateMachineName"
                 $containerName = "psscripts";
-                $fileName = "sysprep.ps1"
+                $fileName = "sysprep.ps1";
                 Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName;
                 $existingStorageContainer = $null;
                 $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
@@ -446,13 +465,12 @@ $configParameters.Machines | % {
                 }
                 Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force | Out-Null;
                 Set-AzureRmVMCustomScriptExtension -VM $templateMachineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName
-
+                Write-Host "$(Get-Date) Press any key"
+                $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") | Out-Null
                 Write-Host "$(Get-Date) Stopping $templateMachineName"
                 Stop-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null
-                sleep 300;
                 Write-Host "$(Get-Date) Generalizing $templateMachineName"
                 Set-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Generalized | Out-Null
-                sleep 300;
                 Write-Host "$(Get-Date) Extracting image $templateMachineName"
                 $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName;
                 $image = New-AzureRmImageConfig -Location $resourceGroupLocation -SourceVirtualMachineId $vm.ID;
@@ -460,6 +478,7 @@ $configParameters.Machines | % {
                 sleep 300;
 
                 Write-Progress -Activity 'Removing template machine' -PercentComplete (70) -ParentId 1 -CurrentOperation $machineName;
+                Write-Host "$(Get-Date) Removing template machine $templateMachineName"
                 Remove-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null;
                 Write-Progress -Activity 'Machines creation via template' -PercentComplete (80) -ParentId 1 -CurrentOperation $machineName;
             }
@@ -615,28 +634,7 @@ if ( $azureParameters.ConfigureSharePoint )
             }
             Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
         }
-    }    
-    
+    }        
 }
-
-Write-Progress -Activity 'Configuration machines provisioning' -PercentComplete (95) -id 1;
-if ( $azureParameters.ConfigurationToolsInstallation )
-{
-    $configurationMachines = $configParameters.Machines | ? { $_.Roles -contains "Configuration" }
-    $configurationMachines | % {
-        $machineName = $_.Name;
-        Write-Progress -Activity 'Configuration tools installing' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
-        $configName = "SPConfigurationTools"
-        $configFileName = "DSC$configName.ps1";
-        Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
-        Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
-        $configurationArguments = @{
-            ConfigParameters = $configParameters
-            CommonDictionary = $commonDictionary
-        }
-        Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
-    }
-}
-
 
 Get-Date

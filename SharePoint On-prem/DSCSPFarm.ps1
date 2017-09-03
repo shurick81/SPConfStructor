@@ -309,6 +309,31 @@ Configuration SPFarm
                     }
 
                 }
+                if ( $isSearchQuery -or $isSearchCrawl )
+                {
+
+                    SPServiceInstance SearchHostControllerService
+                    {
+                        Name                    = "Search Host Controller Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance SearchQueryandSiteSettingsService
+                    {
+                        Name                    = "Search Query and Site Settings Service"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                    SPServiceInstance SharePointServerSearch
+                    {
+                        Name                    = "SharePoint Server Search"
+                        PsDscRunAsCredential    = $SPInstallAccountCredential
+                        DependsOn               = @( "[SPFarm]Farm" )
+                    }
+
+                }
             }
             #this needs to be troubleshooted
             Registry LocalZone
@@ -602,6 +627,7 @@ Configuration SPFarm
                     NodeName          = $SearchMachines
                     RetryIntervalSec  = 15
                     RetryCount        = 300
+                    DependsOn         = "[SPFarm]Farm"
                 }
 
                 WaitForAll FolderCreated
@@ -610,6 +636,7 @@ Configuration SPFarm
                     NodeName          = $SearchQueryMachines
                     RetryIntervalSec  = 15
                     RetryCount        = 300
+                    DependsOn         = "[File]IndexFolder"
                 }
 
                 $topologyDependsOn = @( "[WaitForAll]AllServersJoined", "[WaitForAll]FolderCreated", "[SPSearchServiceApp]SearchServiceApp" )
