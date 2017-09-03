@@ -55,7 +55,7 @@ Configuration SPLoadingInstallationFiles
             }
             xWaitForVolume WaitForSPServerImageMount
             {
-                DriveLetter         = 'S'
+                DriveLetter         = 'P'
                 RetryIntervalSec    = 5
                 RetryCount          = 10
                 DependsOn           = "[xMountImage]SPServerImageMount"
@@ -66,7 +66,7 @@ Configuration SPLoadingInstallationFiles
                 Ensure          = "Present"
                 Type            = "Directory"
                 Recurse         = $true
-                SourcePath      = "S:\"
+                SourcePath      = "P:\"
                 DestinationPath = $SPInstallationMediaPath
                 DependsOn       = "[xWaitForVolume]WaitForSPServerImageMount"
             }
