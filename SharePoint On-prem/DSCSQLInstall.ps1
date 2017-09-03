@@ -26,14 +26,6 @@ Configuration SQLInstall
             RebootNodeIfNeeded = $true;
         }
         
-        #Local DB admin group
-        Group DBAdminGroup
-        {
-            GroupName           = "DBAdmins"
-            Credential          = $LocalAdminCredential
-            MembersToInclude    = "$machineName\$($LocalAdminCredential.UserName)"
-        }
-
         xFireWall SQLFirewallRule
         {
             Name        = "AllowSQLConnection"
@@ -61,6 +53,22 @@ Configuration SQLInstall
             DependsOn   = "[WindowsFeature]NetFramework35Core"
         }
 
+        if ( !( ( $configParameters.Machines | ? { $_.Name -eq $machineName } ).Roles -contains "AD" ) )
+        {
+            #Local DB admin group
+            Group DBAdminGroup
+            {
+                GroupName           = "DBAdmins"
+                Credential          = $LocalAdminCredential
+                MembersToInclude    = "$machineName\$($LocalAdminCredential.UserName)"
+            }
+
+            $SQLSysAdminAccounts = "$machineName\DBAdmins"
+            $SQLDependsOn = @( "[Group]DBAdminGroup", "[xPendingReboot]RebootBeforeSQLInstalling" )
+        } else {
+            $SQLSysAdminAccounts = "BUILTIN\Administrators"
+            $SQLDependsOn = @( "[xPendingReboot]RebootBeforeSQLInstalling" )
+        }
         xSQLServerSetup SQLSetup
         {
             InstanceName        = "MSSQLServer"
@@ -69,11 +77,11 @@ Configuration SQLInstall
             InstallSharedDir    = "C:\Program Files\Microsoft SQL Server"
             #Mixed authentication is needed for Access Services
             SecurityMode        = 'SQL'
-            SQLSysAdminAccounts = "$machineName\DBAdmins"
+            SQLSysAdminAccounts = $SQLSysAdminAccounts
             SAPwd               = $SQLPassCredential
-            DependsOn           = @( "[Group]DBAdminGroup", "[xPendingReboot]RebootBeforeSQLInstalling" )
+            DependsOn           = $SQLDependsOn
         }
-        
+
     }
 }
 
