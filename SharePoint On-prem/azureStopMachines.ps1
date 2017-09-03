@@ -9,8 +9,15 @@ Param(
 
 
 Get-Date
+
 $configParameters = Import-PowershellDataFile $mainParametersFileName;
 $azureParameters = Import-PowershellDataFile $azureParametersFileName;
+$subscription = $null;
+$subscription = Get-AzureRmSubscription;
+if ( !$subscription )
+{
+    Login-AzureRmAccount
+}
 
 $configParameters.Machines | ? { $_.Roles -notcontains "AD" } | % {
     Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;

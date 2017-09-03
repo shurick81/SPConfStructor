@@ -174,15 +174,16 @@ $subscription = $null;
 $subscription = Get-AzureRmSubscription;
 if ( !$subscription )
 {
-    Login-AzureRmAccount
+    Login-AzureRmAccount | Out-Null;
 }
 
 if ( $azureParameters.DeleteResourceGroup )
 {
-    .\azurePurge.ps1
+    Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (0) -id 1 -CurrentOperation "Purging existing resource group";
+    Remove-AzureRmResourceGroup -Name $azureParameters.ResourceGroupName -Force | Out-Null;
 }
 
-Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (0) -id 1 -CurrentOperation "Resource group promotion";
+Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (1) -id 1 -CurrentOperation "Resource group promotion";
 if ( $azureParameters.PrepareResourceGroup )
 {
     $resourceGroup = Get-AzureRmResourceGroup $resourceGroupName -ErrorAction Ignore;
@@ -257,6 +258,7 @@ function PrepareMachine ( $machineParameters ) {
 
     #Check machine sizes: Get-AzureRmVMSize -Location westeurope
     if ( $machineParameters.Memory -le 1.5 ) { $VMSize = "Basic_A1" } else { $VMSize = "Standard_D11_v2" }
+    if ( $machineParameters.Memory -gt 14 ) { $VMSize = "Standard_D12_v2" }
     # Check SKUS: Get-AzureRmVMImageSku -Location westeurope -PublisherName MicrosoftWindowsServer -Offer WindowsServer
     $offer = "WindowsServer";
     $skusPrefix = "2016";
@@ -307,9 +309,9 @@ function PrepareMachine ( $machineParameters ) {
                     Write-Progress -Activity 'AD Server installation' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
                     $configName = "DomainInstall"
                     $configFileName = "DSC$configName.ps1";
-                    Write-Host "$(Get-Date) Deploying $configName extension on $tempMachineName"
+                    Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
                     Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
-                    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $tempMachineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ErrorAction Inquire;
+                    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ErrorAction Inquire;
                 }
             }
             if ( $machineParameters.Roles -contains "SQL" )
@@ -317,21 +319,21 @@ function PrepareMachine ( $machineParameters ) {
                 Write-Progress -Activity 'Loading SQL installation files' -PercentComplete (20) -ParentId 1 -CurrentOperation $machineName;            
                 if ( $azureParameters.PrepareMachines -and ( ( $azureParameters.SQLImageSource -eq "Public" ) -or $azureParameters.SQLImageUnpack ) )
                 {
-                    $configName = "SQL$($SQLVersion)LoadingInstallationFiles";
+                    $configName = "SQLLoadingInstallationFiles";
                     $configFileName = "DSC$configName.ps1";
-                    Write-Host "$(Get-Date) Deploying $configName extension on $tempMachineName"
+                    Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
                     Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
                     $configurationArguments = @{
                         ConfigParameters = $configParameters
                         SystemParameters = $azureParameters
                         CommonDictionary = $commonDictionary
                     }
-                    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $tempMachineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+                    Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
                 }
                 Write-Progress -Activity 'SQL server installation' -PercentComplete (30) -CurrentOperation $machineName -ParentId 1;
                 if ( $azureParameters.SQLInstall )
                 {
-                    $configName = "SQL$($SQLVersion)Install";
+                    $configName = "SQLInstall";
                     $configFileName = "DSC$configName.ps1";
                     Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
                     Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
@@ -373,7 +375,7 @@ function PrepareMachine ( $machineParameters ) {
                     Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
                 }
                 Write-Progress -Activity 'SharePoint server installation media composing' -PercentComplete (55) -CurrentOperation $machineName -ParentId 1;
-                $configName = "SP$($SPVersion)LoadingInstallationFiles";
+                $configName = "SPLoadingInstallationFiles";
                 $configFileName = "DSC$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
                 Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
@@ -387,7 +389,7 @@ function PrepareMachine ( $machineParameters ) {
                 if ( $azureParameters.SPInstall )
                 {
                     Write-Progress -Activity 'SharePoint binaries installation' -PercentComplete (50) -CurrentOperation $machineName -ParentId 1;
-                    $configName = "SP$($SPVersion)Install";
+                    $configName = "SPInstall";
                     $configFileName = "DSC$configName.ps1";
                     Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
                     Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
@@ -408,7 +410,7 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
 
 $azurePreparationPercentage = 3;
 $numberOfMachines = $configParameters.Machines.Count
-$machinePercentage = ( 100 - $azurePreparationPercentage ) / ( $numberOfMachines + 1)
+$machinePercentage = ( 70 - $azurePreparationPercentage ) / ( $numberOfMachines + 1)
 
 $machineCounter = 0;
 if ( $azureParameters.CreateVMs )
@@ -500,6 +502,7 @@ if ( $azureParameters.ADConfigure )
             SPOCAccountCredential = $SPOCAccountCredential
             SPTestAccountCredential = $SPTestAccountCredential
             SPSecondTestAccountCredential = $SPSecondTestAccountCredential
+            MachineName = $machineName
         }
         Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
     }
@@ -531,61 +534,91 @@ if ( $azureParameters.JoinDomain )
 Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete (85) -id 1;
 if ( $azureParameters.ConfigureSharePoint )
 {
+
     $SPMachines = $configParameters.Machines | ? { $_.Roles -contains "SharePoint" }
-    $SPMachines | % {
-        $machineName = $_.Name;
-        Write-Progress -Activity 'Applying SharePoint configuration' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
-        $configName = "SP$($SPVersion)";
-        $configFileName = "DSC$configName.ps1";
-        Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
-        $configurationDataString = '@{ AllNodes = @( @{ NodeName = "' + $machineName + '"; PSDscAllowPlainTextPassword = $True } ) }';
-        $tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
-        $configurationDataString | Set-Content -Path $tempConfigDataFilePath
-        Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
-        $configurationArguments = @{
-            ConfigParameters = $configParameters
-            SPPassphraseCredential = $SPPassphraseCredential
-            SPInstallAccountCredential = $SPInstallAccountCredential
-            SPFarmAccountCredential = $SPFarmAccountCredential
-            SPWebAppPoolAccountCredential = $SPWebAppPoolAccountCredential
-            SPServicesAccountCredential = $SPServicesAccountCredential
-            SPSearchServiceAccountCredential = $SPSearchServiceAccountCredential
-            SPCrawlerAccountCredential = $SPCrawlerAccountCredential
-            GranularApplying = $true
-        }
-        Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
-    }
-
-    $SearchQueryMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchQuery" }
-    $SearchQueryMachines | % {
-        $machineName = $_.Name;
-        Write-Progress -Activity 'Configuring SharePoint Search Topology' -PercentComplete (90) -CurrentOperation $machineName -ParentId 1;
-        $configurationArguments = @{
-            ConfigParameters = $configParameters
-            SPPassphraseCredential = $SPPassphraseCredential
-            SPInstallAccountCredential = $SPInstallAccountCredential
-            SPFarmAccountCredential = $SPFarmAccountCredential
-            SPWebAppPoolAccountCredential = $SPWebAppPoolAccountCredential
-            SPServicesAccountCredential = $SPServicesAccountCredential
-            SPSearchServiceAccountCredential = $SPSearchServiceAccountCredential
-            SPCrawlerAccountCredential = $SPCrawlerAccountCredential
-            GranularApplying = $true
-            SearchTopologyGranule = $true
+    $SPMachineNames = $SPMachines | % { $_.Name }
+    if ( $SPMachineNames.Count -gt 1 )
+    {
+        $SPMachines | % {
+            $machineName = $_.Name;
+            Write-Progress -Activity 'Applying SharePoint configuration' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
+            $configName = "SPFarm";
+            $configFileName = "DSC$configName.ps1";
+            Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+            $configurationDataString = '@{ AllNodes = @( @{ NodeName = "' + $machineName + '"; PSDscAllowPlainTextPassword = $True } ) }';
+            $tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
+            $configurationDataString | Set-Content -Path $tempConfigDataFilePath
+            Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
+            $configurationArguments = @{
+                ConfigParameters = $configParameters
+                SPPassphraseCredential = $SPPassphraseCredential
+                SPInstallAccountCredential = $SPInstallAccountCredential
+                SPFarmAccountCredential = $SPFarmAccountCredential
+                SPWebAppPoolAccountCredential = $SPWebAppPoolAccountCredential
+                SPServicesAccountCredential = $SPServicesAccountCredential
+                SPSearchServiceAccountCredential = $SPSearchServiceAccountCredential
+                SPCrawlerAccountCredential = $SPCrawlerAccountCredential
+                GranularApplying = $true
+            }
+            Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
         }
 
-        $configurationDataString = '@{ AllNodes = @( @{ NodeName = "' + $machineName + '"; PSDscAllowPlainTextPassword = $True } ) }';
-        $tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
-        $configurationDataString | Set-Content -Path $tempConfigDataFilePath
+        $SearchQueryMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchQuery" }
+        $SearchQueryMachines | % {
+            $machineName = $_.Name;
+            Write-Progress -Activity 'Configuring SharePoint Search Topology' -PercentComplete (90) -CurrentOperation $machineName -ParentId 1;
+            $configurationArguments = @{
+                ConfigParameters = $configParameters
+                SPPassphraseCredential = $SPPassphraseCredential
+                SPInstallAccountCredential = $SPInstallAccountCredential
+                SPFarmAccountCredential = $SPFarmAccountCredential
+                SPWebAppPoolAccountCredential = $SPWebAppPoolAccountCredential
+                SPServicesAccountCredential = $SPServicesAccountCredential
+                SPSearchServiceAccountCredential = $SPSearchServiceAccountCredential
+                SPCrawlerAccountCredential = $SPCrawlerAccountCredential
+                GranularApplying = $true
+                SearchTopologyGranule = $true
+            }
 
-        $configName = "SP$($SPVersion)";
-        $configFileName = "DSC$configName.ps1";
-        Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
-        if ( $configParameters.SPVersion -eq "2013" ) { $configFileName = "DSCSP2013.ps1" } else { $configFileName = "DSCSP2016.ps1" }
-        Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
-        Remove-Item $tempConfigDataFilePath;
-        Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            $configurationDataString = '@{ AllNodes = @( @{ NodeName = "' + $machineName + '"; PSDscAllowPlainTextPassword = $True } ) }';
+            $tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
+            $configurationDataString | Set-Content -Path $tempConfigDataFilePath
 
+            $configName = "SPFarm";
+            $configFileName = "DSC$configName.ps1";
+            Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+            if ( $configParameters.SPVersion -eq "2013" ) { $configFileName = "DSCSP2013.ps1" } else { $configFileName = "DSCSP2016.ps1" }
+            Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
+            Remove-Item $tempConfigDataFilePath;
+            Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+        }
     }
+    if ( $SPMachineNames.Count -eq 1 )
+    {
+        $SPMachines | % {
+            $machineName = $_.Name;
+            Write-Progress -Activity 'Applying SharePoint configuration' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
+            $configName = "SPFarm";
+            $configFileName = "DSC$configName.ps1";
+            Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+            $configurationDataString = '@{ AllNodes = @( @{ NodeName = "' + $machineName + '"; PSDscAllowPlainTextPassword = $True } ) }';
+            $tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
+            $configurationDataString | Set-Content -Path $tempConfigDataFilePath
+            Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
+            $configurationArguments = @{
+                ConfigParameters = $configParameters
+                SPPassphraseCredential = $SPPassphraseCredential
+                SPInstallAccountCredential = $SPInstallAccountCredential
+                SPFarmAccountCredential = $SPFarmAccountCredential
+                SPWebAppPoolAccountCredential = $SPWebAppPoolAccountCredential
+                SPServicesAccountCredential = $SPServicesAccountCredential
+                SPSearchServiceAccountCredential = $SPSearchServiceAccountCredential
+                SPCrawlerAccountCredential = $SPCrawlerAccountCredential
+            }
+            Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+        }
+    }    
+    
 }
 
 Write-Progress -Activity 'Configuration machines provisioning' -PercentComplete (95) -id 1;

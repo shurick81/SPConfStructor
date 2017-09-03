@@ -1,12 +1,10 @@
-Configuration SP2013Install
+Configuration SPInstall
 {
     param(
         $configParameters,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullorEmpty()]
         [PSCredential]
-        #Needed?
-        $LocalAdminCredential
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
