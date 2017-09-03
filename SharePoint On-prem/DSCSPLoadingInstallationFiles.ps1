@@ -39,7 +39,7 @@ Configuration SPLoadingInstallationFiles
                 xMountImage SPServerImageMount
                 {
                     ImagePath   = $SPImagePath
-                    DriveLetter = 'S'
+                    DriveLetter = 'P'
                     DependsOn   = @("[xRemoteFile]SPServerImageFile")
                 }
             
@@ -49,7 +49,7 @@ Configuration SPLoadingInstallationFiles
                 xMountImage SPServerImageMount
                 {
                     ImagePath   = $SPImagePath
-                    DriveLetter = 'S'
+                    DriveLetter = 'P'
                 }
 
             }
