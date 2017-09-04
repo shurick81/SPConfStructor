@@ -470,9 +470,10 @@ $configParameters.Machines | % {
                 }
                 Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force | Out-Null;
                 Set-AzureRmVMCustomScriptExtension -VM $templateMachineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName
+                Do {
+                    $vmState = ( Get-AzureRmVM -Status | ? { $_.Name -eq "SP2013Ent01dc01" } ).PowerState
+                } while ( $vmState -ne "VM stopped" )
                 #Remove-AzureRmVMCustomScriptExtension -ResourceGroupName $resourceGroupName -VMName $machineName -Name $fileName -Force | Out-Null;
-                #PS C:\WINDOWS\system32> (get-azurermvm -Status)[6].PowerState
-                #VM stopped
                 Write-Host "$(Get-Date) Press any button when the temporary machine is stopped"
                 $host.UI.RawUI.ReadKey() | Out-Null
                 Write-Host "$(Get-Date) Stopping $templateMachineName"
