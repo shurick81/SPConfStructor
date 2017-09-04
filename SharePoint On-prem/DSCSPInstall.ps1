@@ -1,12 +1,7 @@
-Configuration SP2013Install
+Configuration SPInstall
 {
     param(
-        $configParameters,
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullorEmpty()]
-        [PSCredential]
-        #Needed?
-        $LocalAdminCredential
+        $configParameters
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -39,18 +34,30 @@ Configuration SP2013Install
             OnlineMode      = $true
         }
 
+        if ( $configParameters.SPVersion -eq "2016" )
+        {
+
+            xPendingReboot RebootAfterSPPrereqsInstalling
+            { 
+                Name        = 'AfterSPPrereqsInstalling'
+                DependsOn   = "[SPInstallPrereqs]SPPrereqs"
+            }
+
+            $installationDependsOn = "[xPendingReboot]RebootAfterSPPrereqsInstalling"
+        } else { $installationDependsOn = "" }
+        
         SPInstall InstallSharePoint 
         { 
             Ensure      = "Present"
             BinaryDir   = $configParameters.SPInstallationMediaPath
             ProductKey  = $configParameters.SPProductKey
-            DependsOn   = "[SPInstallPrereqs]SPPrereqs"
+            DependsOn   = $installationDependsOn
         }
 
         xIISLogging RootWebAppIISLogging
         {
             LogPath     = "$logFolder\IIS"
-            DependsOn   = "[SPInstallPrereqs]SPPrereqs","[File]LogFolder"
+            DependsOn   = "[xPendingReboot]RebootAfterSPPrereqsInstalling","[File]LogFolder"
         }
 
         xPendingReboot RebootAfterSPInstalling

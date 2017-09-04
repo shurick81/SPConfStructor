@@ -14,7 +14,9 @@ Configuration DomainClient
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DSCResource -ModuleName xDSCDomainJoin
     Import-DSCResource -ModuleName xNetworking
+    <#
     Import-DscResource -ModuleName xCredSSP
+    #>
     
     Node $AllNodes.NodeName
     {        
@@ -22,7 +24,7 @@ Configuration DomainClient
         {
             $interfaceAlias = "Ethernet"
             $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
-            if ( $machineParameters.WinVersion -eq "2016" )
+            if ( ( $machineParameters.WinVersion -eq "2016" ) -or ( $machineParameters.WinVersion -eq "2012" ) )
             {
                 $interfaceAlias = "Ethernet 3"
             }

@@ -45,8 +45,12 @@ Configuration SPDomain
         [Parameter(Mandatory=$true)]
         [ValidateNotNullorEmpty()]
         [PSCredential]
-        $SPSecondTestAccountCredential
+        $SPSecondTestAccountCredential,
+        $machineName
     )
+
+    $DomainName = $configParameters.DomainName;
+    $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DscResource -ModuleName xRemoteDesktopAdmin
@@ -176,12 +180,35 @@ Configuration SPDomain
             DependsOn           = "[xADUser]SPInstallAccountUser"
         }
 
+        if ( ( $configParameters.Machines | ? { $_.Name -eq $machineName } ).Roles -contains "SQL" )
+        {
+
+            xADGroup DomainDBAdminGroup
+            {
+                GroupName           = "DBAdmins"
+                Members             = $configParameters.SPAdminGroupName
+                DependsOn           = "[xADGroup]SPAdminGroup"
+            }
+
+        }
+        if ( ( $configParameters.Machines | ? { $_.Name -eq $machineName } ).Roles -contains "SharePoint" )
+        {
+       
+            xADGroup DomainAdminGroup
+            {
+                GroupName           = "Domain Admins"
+                MembersToInclude    = $configParameters.SPAdminGroupName
+                DependsOn           = "[xADGroup]SPAdminGroup"
+            }
+
+        }
+
         xADGroup SPMemberGroup
         {
             GroupName           = $configParameters.SPMemberGroupName
             Ensure              = "Present"
             MembersToInclude    = $SPTestAccountCredential.GetNetworkCredential().UserName
-            DependsOn           = "[xADUser]SPInstallAccountUser"
+            DependsOn           = "[xADUser]SPTestUser"
         }
 
         xADGroup SPVisitorGroup
@@ -189,7 +216,7 @@ Configuration SPDomain
             GroupName           = $configParameters.SPVisitorGroupName
             Ensure              = "Present"
             MembersToInclude    = $SPSecondTestAccountCredential.GetNetworkCredential().UserName
-            DependsOn           = "[xADUser]SPInstallAccountUser"
+            DependsOn           = "[xADUser]SPSecondTestUser"
         }
     }
 }

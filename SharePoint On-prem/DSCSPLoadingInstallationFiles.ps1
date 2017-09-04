@@ -1,4 +1,4 @@
-Configuration SP2013LoadingInstallationFiles
+Configuration SPLoadingInstallationFiles
 {
     param(
         $configParameters,
@@ -39,7 +39,7 @@ Configuration SP2013LoadingInstallationFiles
                 xMountImage SPServerImageMount
                 {
                     ImagePath   = $SPImagePath
-                    DriveLetter = 'S'
+                    DriveLetter = 'P'
                     DependsOn   = @("[xRemoteFile]SPServerImageFile")
                 }
             
@@ -49,13 +49,13 @@ Configuration SP2013LoadingInstallationFiles
                 xMountImage SPServerImageMount
                 {
                     ImagePath   = $SPImagePath
-                    DriveLetter = 'S'
+                    DriveLetter = 'P'
                 }
 
             }
             xWaitForVolume WaitForSPServerImageMount
             {
-                DriveLetter         = 'S'
+                DriveLetter         = 'P'
                 RetryIntervalSec    = 5
                 RetryCount          = 10
                 DependsOn           = "[xMountImage]SPServerImageMount"
@@ -66,7 +66,7 @@ Configuration SP2013LoadingInstallationFiles
                 Ensure          = "Present"
                 Type            = "Directory"
                 Recurse         = $true
-                SourcePath      = "S:\"
+                SourcePath      = "P:\"
                 DestinationPath = $SPInstallationMediaPath
                 DependsOn       = "[xWaitForVolume]WaitForSPServerImageMount"
             }
