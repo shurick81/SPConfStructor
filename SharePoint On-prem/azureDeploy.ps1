@@ -208,12 +208,14 @@ if ( $azureParameters.PrepareResourceGroup )
             -SkuName "Standard_LRS" -Kind "Storage" | Out-Null;
     }
 
+    <#
     $automationAccountName = ( $resourceGroupName + "Automation" );
     $automationAccount = Get-AzureRmAutomationAccount -ResourceGroupName $resourceGroupName -Name $automationAccountName -ErrorAction Ignore;
     if ( !$automationAccount )
     {
         New-AzureRmAutomationAccount -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -Name $automationAccountName | Out-Null;
     }
+    #>
 }
 
 function CreateMachine ( $machineParameters ) {
