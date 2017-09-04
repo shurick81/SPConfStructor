@@ -219,7 +219,6 @@ if ( $azureParameters.PrepareResourceGroup )
 function CreateMachine ( $machineParameters ) {
     $machineName = $machineParameters.Name;
     Write-Host "$(Get-Date) Creating $machineName machine"
-    Write-Progress -Activity 'Machine creation' -PercentComplete (0) -ParentId 1 -CurrentOperation $machineName;            
     $publicIpName = ( $machineName + "IP" );
     $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName -Name $publicIpName -ErrorAction Ignore;
     if ( !$pip )
@@ -283,8 +282,9 @@ function CreateMachine ( $machineParameters ) {
     New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
 }
 function PrepareMachine ( $machineParameters ) {
+    $machineName = $machineParameters.Name;
     if ( $azureParameters.PrepareMachines )
-    {           
+    {
         if ( $machineParameters.WinVersion -eq "2012" ) {
             Write-Progress -Activity 'Preparing Windows 2012' -PercentComplete (10) -ParentId 1 -CurrentOperation $machineName;            
             $containerName = "psscripts";
@@ -297,7 +297,8 @@ function PrepareMachine ( $machineParameters ) {
                 New-AzureStorageContainer -Name $containerName -Permission Off | Out-Null;
             }
             Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force | Out-Null;
-            Set-AzureRmVMCustomScriptExtension -VM $machineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName
+            Set-AzureRmVMCustomScriptExtension -VM $machineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName;
+            Remove-AzureRmVMCustomScriptExtension -ResourceGroupName $resourceGroupName -VMName $machineName -Name $fileName -Force | Out-Null;
         }
         if ( $machineParameters.Roles -contains "AD" )
         {
@@ -451,7 +452,11 @@ $configParameters.Machines | % {
                 }
                 CreateMachine $templateMachineParameters;  
                 PrepareMachine $templateMachineParameters;
-                
+                if ( $azureParameters.PauseBeforeImaging )
+                {
+                    Write-Host "$(Get-Date) Apply the changes in the template machine before the image is taken. Then press any key"
+                    $host.UI.RawUI.ReadKey() | Out-Null
+                }
                 Write-Progress -Activity 'Extracting image from template VM' -PercentComplete (60) -ParentId 1 -CurrentOperation $templateMachineName;
                 Write-Host "$(Get-Date) Deploying sysprep extension on $templateMachineName"
                 $containerName = "psscripts";
@@ -465,8 +470,8 @@ $configParameters.Machines | % {
                 }
                 Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force | Out-Null;
                 Set-AzureRmVMCustomScriptExtension -VM $templateMachineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName
-                Write-Host "$(Get-Date) Press any key"
-                $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") | Out-Null
+                Write-Host "$(Get-Date) Press any button when the temporary machine is stopped"
+                $host.UI.RawUI.ReadKey() | Out-Null
                 Write-Host "$(Get-Date) Stopping $templateMachineName"
                 Stop-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null
                 Write-Host "$(Get-Date) Generalizing $templateMachineName"
@@ -475,8 +480,6 @@ $configParameters.Machines | % {
                 $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName;
                 $image = New-AzureRmImageConfig -Location $resourceGroupLocation -SourceVirtualMachineId $vm.ID;
                 New-AzureRmImage -Image $image -ImageName $_.Image -ResourceGroupName $azureParameters.ImageResourceGroupName;
-                sleep 300;
-
                 Write-Progress -Activity 'Removing template machine' -PercentComplete (70) -ParentId 1 -CurrentOperation $machineName;
                 Write-Host "$(Get-Date) Removing template machine $templateMachineName"
                 Remove-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null;
@@ -487,6 +490,7 @@ $configParameters.Machines | % {
     } else {
         if ( !$vm )
         {
+            Write-Progress -Activity 'Machine creation' -PercentComplete (0) -ParentId 1 -CurrentOperation $machineName;            
             CreateMachine $_;
         }
         PrepareMachine $_;
@@ -635,6 +639,18 @@ if ( $azureParameters.ConfigureSharePoint )
             Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
         }
     }        
+}
+
+Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete (100) -id 1;
+Write-Host "$(Get-Date) Stopping all the machines"
+if ( $azureParameters.ShutDownAfterProvisioning )
+{
+    $configParameters.Machines | ? { $_.Roles -notcontains "AD" } | % {
+        Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
+    }
+    $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
+        Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
+    }
 }
 
 Get-Date

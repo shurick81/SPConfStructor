@@ -44,7 +44,7 @@ Configuration SPInstall
             }
 
             $installationDependsOn = "[xPendingReboot]RebootAfterSPPrereqsInstalling"
-        } else { $installationDependsOn = "" }
+        } else { $installationDependsOn = "[SPInstallPrereqs]SPPrereqs" }
         
         SPInstall InstallSharePoint 
         { 
@@ -57,7 +57,7 @@ Configuration SPInstall
         xIISLogging RootWebAppIISLogging
         {
             LogPath     = "$logFolder\IIS"
-            DependsOn   = "[xPendingReboot]RebootAfterSPPrereqsInstalling","[File]LogFolder"
+            DependsOn   = $installationDependsOn,"[File]LogFolder"
         }
 
         xPendingReboot RebootAfterSPInstalling
