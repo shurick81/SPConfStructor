@@ -5,11 +5,17 @@ Param(
     [string]$azureParametersFileName = "azureParameters.psd1"
 )
 
-#Login-AzureRmAccount
-
 Get-Date
 $azureParameters = Import-PowershellDataFile $azureParametersFileName;
-
+$subscription = $null;
+$subscription = Get-AzureRmSubscription;
+if ( !$subscription )
+{
+    Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    Write-Host "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+    Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
+    Login-AzureRmAccount
+}
 $containerName = $azureParameters.SPImageAzureContainerName;
 $fileName = $azureParameters.SPImageFileName;
 $subscriptionName = (Get-AzureRmSubscription)[0].Name;

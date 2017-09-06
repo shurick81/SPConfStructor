@@ -20,11 +20,18 @@ Configuration DomainClient
     
     Node $AllNodes.NodeName
     {        
+        LocalConfigurationManager
+        {
+            RebootNodeIfNeeded = $true;
+        }
+
         if ( $systemParameters.DomainControllerIP )
         {
-            $interfaceAlias = "Ethernet"
             $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
-            if ( ( $machineParameters.WinVersion -eq "2016" ) -or ( $machineParameters.WinVersion -eq "2012" ) )
+            $interfaceAlias = "Ethernet"
+            $winVersion = $machineParameters.WinVersion;
+            $imageParameter = $machineParameters.Image;
+            if ( ( ( $winVersion -eq "2016" ) -or ( $winVersion -eq "2012" ) ) -and ( !$imageParameter -or ( $imageParameter -eq "" ) ) )
             {
                 $interfaceAlias = "Ethernet 3"
             }

@@ -15,9 +15,11 @@ $subscription = $null;
 $subscription = Get-AzureRmSubscription;
 if ( !$subscription )
 {
+    Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    Write-Host "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+    Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
     Login-AzureRmAccount
 }
-
 $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
     Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name;
 }
@@ -29,5 +31,4 @@ if ( $ADClientMachines )
         Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name;
     }
 }
-
 Get-Date

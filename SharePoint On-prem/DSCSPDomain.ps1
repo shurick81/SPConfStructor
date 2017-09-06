@@ -50,37 +50,45 @@ Configuration SPDomain
     )
 
     $DomainName = $configParameters.DomainName;
-    $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
+    Import-DscResource -ModuleName xPendingReboot
     Import-DscResource -ModuleName xRemoteDesktopAdmin
     Import-DscResource -ModuleName xActiveDirectory
     
     Node $AllNodes.NodeName
     {
+
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true;
         }
+
+        WindowsFeatureSet DomainFeatures
+        {
+            Name                    = @( "DNS", "RSAT-DNS-Server", "AD-Domain-Services", "RSAT-ADDS" )
+            Ensure                  = 'Present'
+            IncludeAllSubFeature    = $true
+        } 
+
+        xPendingReboot RebootAfterFeaturesInstalling
+        { 
+            Name        = 'AfterFeaturesInstalling'
+            DependsOn   = @( "[WindowsFeatureSet]DomainFeatures" )
+        }
+
         xRemoteDesktopAdmin DCRDPSettings
         {
            Ensure               = 'Present'
            UserAuthentication   = 'NonSecure'
         }
 
-        WindowsFeatureSet DomainFeatures
-        {
-            Name                    = @("DNS", "AD-Domain-Services", "RSAT-ADDS")
-            Ensure                  = 'Present'
-            IncludeAllSubFeature    = $true
-        } 
-                
         xADDomain ADDomain
         {
             DomainName                      = $configParameters.DomainName
             DomainAdministratorCredential   = $ShortDomainAdminCredential
             SafemodeAdministratorPassword   = $DomainSafeModeAdministratorPasswordCredential
-            DependsOn                       = @("[WindowsFeatureSet]DomainFeatures", "[xRemoteDesktopAdmin]DCRDPSettings")
+            DependsOn                       = @( "[xRemoteDesktopAdmin]DCRDPSettings" )
         }
 
         xWaitForADDomain WaitForDomain

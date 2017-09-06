@@ -12,10 +12,12 @@ Configuration SP2013Prepare
     Node $AllNodes.NodeName
     {
         #Only needed for manual mof installation, not for automated?
+        <#
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true;
         }
+        #>
          
         Registry LoopBackRegistry
         {

@@ -21,10 +21,12 @@ Configuration SPConfigurationTools
     Node $AllNodes.NodeName
     {
         #Only needed for manual mof installation, not for automated?
+        <#
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true;
         }
+        #>
          
         Registry LoopBackRegistry
         {
@@ -60,7 +62,7 @@ Configuration SPConfigurationTools
         
         WindowsFeatureSet DomainFeatures
         {
-            Name                    = @( "RSAT-ADDS" )
+            Name                    = @( "RSAT-ADDS", "RSAT-DNS-Server" )
             Ensure                  = 'Present'
             IncludeAllSubFeature    = $true
         } 

@@ -10,6 +10,9 @@ $subscription = $null;
 $subscription = Get-AzureRmSubscription;
 if ( !$subscription )
 {
+    Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    Write-Host "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+    Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
     Login-AzureRmAccount
 }
 $azureParameters = Import-PowershellDataFile azureParameters.psd1;

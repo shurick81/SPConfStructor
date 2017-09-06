@@ -158,6 +158,9 @@ $subscription = $null;
 $subscription = Get-AzureRmSubscription;
 if ( !$subscription )
 {
+    Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    Write-Host "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+    Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
     Login-AzureRmAccount
 }
 
@@ -211,15 +214,6 @@ $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % {
     SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters;
 }
 
-#compiling domain machine adding
-$configParameters.Machines | ? { !( $_.Roles -contains "AD" ) } | % {
-    $configurationData = @{ AllNodes = @(
-        @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
-    ) }
-    . .\DSCDomainClient.ps1
-    DomainClient -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -DomainAdminCredential $DomainAdminCredential
-}
-
 #compiling configuration machines provisioning
 $configParameters.Machines | ? { $_.Roles -contains "Configuration" } | % {
     $configurationData = @{ AllNodes = @(
@@ -227,6 +221,23 @@ $configParameters.Machines | ? { $_.Roles -contains "Configuration" } | % {
     ) }
     . .\DSCSPConfigurationTools.ps1
     SPConfigurationTools -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary
+}
+
+#compiling domain machine adding
+$firstAdVMName = $null;
+$configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
+    if ( !$firstAdVMName ) { $firstAdVMName = $_.Name }
+}
+$vm = Get-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -VMName $firstAdVMName;
+$networkInterfaceRef = $vm.NetworkProfile[0].NetworkInterfaces[0].id;
+$networkInterface = Get-AzureRmNetworkInterface | ? { $_.Id -eq $networkInterfaceRef }
+$azureParameters.DomainControllerIP = $networkInterface.IpConfigurations[0].PrivateIpAddress 
+$configParameters.Machines | ? { !( $_.Roles -contains "AD" ) } | % {
+    $configurationData = @{ AllNodes = @(
+        @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
+    ) }
+    . .\DSCDomainClient.ps1
+    DomainClient -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -DomainAdminCredential $DomainAdminCredential
 }
 
 #compiling SPFarm configuration

@@ -17,10 +17,12 @@ Configuration SPInstall
     {
         $logFolder = $configParameters.SPLogFolder;
         #Only needed for manual mof installation, not for automated?
+        <#
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true;
         }
+        #>
         
         File LogFolder
         {

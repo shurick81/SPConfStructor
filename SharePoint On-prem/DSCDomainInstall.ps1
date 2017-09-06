@@ -8,10 +8,12 @@ Configuration DomainInstall
     Node $AllNodes.NodeName
     {
 
+        <#
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true;
         }
+        #>
 
         #For domain controller only?
         xRemoteDesktopAdmin DCRDPSettings
@@ -22,7 +24,7 @@ Configuration DomainInstall
 
         WindowsFeatureSet DomainFeatures
         {
-            Name                    = @("DNS", "AD-Domain-Services", "RSAT-ADDS")
+            Name                    = @("DNS", "RSAT-DNS-Server", "AD-Domain-Services", "RSAT-ADDS")
             Ensure                  = 'Present'
             IncludeAllSubFeature    = $true
         } 

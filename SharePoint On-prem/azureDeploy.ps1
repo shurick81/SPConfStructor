@@ -174,16 +174,19 @@ $subscription = $null;
 $subscription = Get-AzureRmSubscription;
 if ( !$subscription )
 {
+    Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    Write-Host "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+    Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
     Login-AzureRmAccount | Out-Null;
 }
 
 if ( $azureParameters.DeleteResourceGroup )
 {
-    Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (0) -id 1 -CurrentOperation "Purging existing resource group";
+    Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete 0 -id 1 -CurrentOperation "Purging existing resource group";
     Remove-AzureRmResourceGroup -Name $azureParameters.ResourceGroupName -Force | Out-Null;
 }
 
-Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete (1) -id 1 -CurrentOperation "Resource group promotion";
+Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete 1 -id 1 -CurrentOperation "Resource group promotion";
 if ( $azureParameters.PrepareResourceGroup )
 {
     $resourceGroup = Get-AzureRmResourceGroup $resourceGroupName -ErrorAction Ignore;
@@ -207,15 +210,6 @@ if ( $azureParameters.PrepareResourceGroup )
         New-AzureRmStorageAccount -ResourceGroupName $resourceGroupName -Name $storageAccountName -Location $resourceGroupLocation `
             -SkuName "Standard_LRS" -Kind "Storage" | Out-Null;
     }
-
-    <#
-    $automationAccountName = ( $resourceGroupName + "Automation" );
-    $automationAccount = Get-AzureRmAutomationAccount -ResourceGroupName $resourceGroupName -Name $automationAccountName -ErrorAction Ignore;
-    if ( !$automationAccount )
-    {
-        New-AzureRmAutomationAccount -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -Name $automationAccountName | Out-Null;
-    }
-    #>
 }
 
 function CreateMachine ( $machineParameters ) {
@@ -288,7 +282,7 @@ function PrepareMachine ( $machineParameters ) {
     if ( $azureParameters.PrepareMachines )
     {
         if ( $machineParameters.WinVersion -eq "2012" ) {
-            Write-Progress -Activity 'Preparing Windows 2012' -PercentComplete (10) -ParentId 1 -CurrentOperation $machineName;            
+            Write-Progress -Activity 'Preparing Windows 2012' -PercentComplete 10 -ParentId 1 -CurrentOperation $machineName;            
             $containerName = "psscripts";
             $fileName = "Win2012Prepare.ps1"
             Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName;
@@ -304,10 +298,9 @@ function PrepareMachine ( $machineParameters ) {
         }
         if ( $machineParameters.Roles -contains "AD" )
         {
-            Write-Progress -Activity 'Installing AD role' -PercentComplete (15) -ParentId 1 -CurrentOperation $machineName;            
+            Write-Progress -Activity 'Installing AD role' -PercentComplete 15 -ParentId 1 -CurrentOperation $machineName;            
             if ( $azureParameters.ADInstall )
             {
-                Write-Progress -Activity 'AD Server installation' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
                 $configName = "DomainInstall"
                 $configFileName = "DSC$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
@@ -317,7 +310,7 @@ function PrepareMachine ( $machineParameters ) {
         }
         if ( $machineParameters.Roles -contains "SQL" )
         {
-            Write-Progress -Activity 'Loading SQL installation files' -PercentComplete (20) -ParentId 1 -CurrentOperation $machineName;            
+            Write-Progress -Activity 'Loading SQL installation files' -PercentComplete 20 -ParentId 1 -CurrentOperation $machineName;            
             if ( ( $azureParameters.SQLImageSource -eq "Public" ) -or $azureParameters.SQLImageUnpack )
             {
                 $configName = "SQLLoadingInstallationFiles";
@@ -331,7 +324,7 @@ function PrepareMachine ( $machineParameters ) {
                 }
                 Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
-            Write-Progress -Activity 'SQL server installation' -PercentComplete (30) -CurrentOperation $machineName -ParentId 1;
+            Write-Progress -Activity 'SQL server installation' -PercentComplete 30 -CurrentOperation $machineName -ParentId 1;
             if ( $azureParameters.SQLInstall )
             {
                 $configName = "SQLInstall";
@@ -351,7 +344,7 @@ function PrepareMachine ( $machineParameters ) {
         {
             if ( $SPVersion -eq "2013" )
             {
-                Write-Progress -Activity 'SharePoint server preparation' -PercentComplete (40) -CurrentOperation $machineName -ParentId 1;
+                Write-Progress -Activity 'SharePoint server preparation' -PercentComplete 40 -CurrentOperation $machineName -ParentId 1;
                 $configName = "SP2013Prepare";
                 $configFileName = "DSC$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
@@ -363,7 +356,7 @@ function PrepareMachine ( $machineParameters ) {
             }
             if ( $azureParameters.SPImageSource -eq "AzureBlob" )
             {
-                Write-Progress -Activity 'SharePoint server installation files downloading' -PercentComplete (45) -CurrentOperation $machineName -ParentId 1;
+                Write-Progress -Activity 'SharePoint server installation files downloading' -PercentComplete 45 -CurrentOperation $machineName -ParentId 1;
                 $configName = "SP$($SPVersion)AzureLoadingInstallationFiles";
                 $configFileName = "DSC$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
@@ -377,7 +370,7 @@ function PrepareMachine ( $machineParameters ) {
             }
             if ( ( $azureParameters.SPImageSource -eq "Public" ) -or $azureParameters.SPImageUnpack )
             {
-                Write-Progress -Activity 'SharePoint server installation media composing' -PercentComplete (55) -CurrentOperation $machineName -ParentId 1;
+                Write-Progress -Activity 'SharePoint server installation media composing' -PercentComplete 55 -CurrentOperation $machineName -ParentId 1;
                 $configName = "SPLoadingInstallationFiles";
                 $configFileName = "DSC$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
@@ -391,7 +384,7 @@ function PrepareMachine ( $machineParameters ) {
             }
             if ( $azureParameters.SPInstall )
             {
-                Write-Progress -Activity 'SharePoint binaries installation' -PercentComplete (50) -CurrentOperation $machineName -ParentId 1;
+                Write-Progress -Activity 'SharePoint binaries installation' -PercentComplete 50 -CurrentOperation $machineName -ParentId 1;
                 $configName = "SPInstall";
                 $configFileName = "DSC$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
@@ -406,7 +399,7 @@ function PrepareMachine ( $machineParameters ) {
         {
             if ( $azureParameters.ConfigurationToolsInstallation )
             {
-                Write-Progress -Activity 'Configuration tools installing' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
+                Write-Progress -Activity 'Configuration tools installing' -PercentComplete 10 -CurrentOperation $machineName -ParentId 1;
                 $configName = "SPConfigurationTools"
                 $configFileName = "DSC$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
@@ -426,7 +419,7 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
 
 $azurePreparationPercentage = 3;
 $numberOfMachines = $configParameters.Machines.Count
-$machinePercentage = ( 70 - $azurePreparationPercentage ) / ( $numberOfMachines + 1)
+$machinePercentage = ( 70 - $azurePreparationPercentage ) / ( $numberOfMachines )
 
 $machineCounter = 0;
 $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name $vnetName;
@@ -443,6 +436,9 @@ $configParameters.Machines | % {
             $image = $null;
             $image = Get-AzureRMImage -ResourceGroupName $azureParameters.ImageResourceGroupName -ImageName $_.Image -ErrorAction SilentlyContinue;
             if ( !$image ) {
+                Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+                Write-Host "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+                Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
                 $templateMachineName = "TemplateMachine";
                 Write-Host "$(Get-Date) Creating $templateMachineName temporary"
                 $templateMachineParameters = @{
@@ -459,11 +455,12 @@ $configParameters.Machines | % {
                     Write-Host "$(Get-Date) Apply the changes in the template machine before the image is taken. Then press any key"
                     $host.UI.RawUI.ReadKey() | Out-Null
                 }
-                Write-Progress -Activity 'Extracting image from template VM' -PercentComplete (60) -ParentId 1 -CurrentOperation $templateMachineName;
+                Write-Progress -Activity 'Extracting image from template VM' -PercentComplete 60 -ParentId 1 -CurrentOperation $templateMachineName;
                 Write-Host "$(Get-Date) Deploying sysprep extension on $templateMachineName"
+                <#
                 $containerName = "psscripts";
                 $fileName = "sysprep.ps1";
-                Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName;
+                Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName | Out-Null;
                 $existingStorageContainer = $null;
                 $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
                 if ( !$existingStorageContainer )
@@ -472,13 +469,13 @@ $configParameters.Machines | % {
                 }
                 Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force | Out-Null;
                 Set-AzureRmVMCustomScriptExtension -VM $templateMachineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName
+                Write-Host "$(Get-Date) Waiting until $templateMachineName shuts down"
+                #>
                 Do {
-                    $vmState = ( Get-AzureRmVM -Status | ? { $_.Name -eq "SP2013Ent01dc01" } ).PowerState
+                    Sleep 3;
+                    $vmState = ( Get-AzureRmVM -Status | ? { $_.Name -eq $templateMachineName } ).PowerState;
                 } while ( $vmState -ne "VM stopped" )
-                #Remove-AzureRmVMCustomScriptExtension -ResourceGroupName $resourceGroupName -VMName $machineName -Name $fileName -Force | Out-Null;
-                Write-Host "$(Get-Date) Press any button when the temporary machine is stopped"
-                $host.UI.RawUI.ReadKey() | Out-Null
-                Write-Host "$(Get-Date) Stopping $templateMachineName"
+                Write-Host "$(Get-Date) Deallocating $templateMachineName"
                 Stop-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null
                 Write-Host "$(Get-Date) Generalizing $templateMachineName"
                 Set-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Generalized | Out-Null
@@ -486,17 +483,19 @@ $configParameters.Machines | % {
                 $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName;
                 $image = New-AzureRmImageConfig -Location $resourceGroupLocation -SourceVirtualMachineId $vm.ID;
                 New-AzureRmImage -Image $image -ImageName $_.Image -ResourceGroupName $azureParameters.ImageResourceGroupName;
-                Write-Progress -Activity 'Removing template machine' -PercentComplete (70) -ParentId 1 -CurrentOperation $machineName;
+                Write-Progress -Activity 'Removing template machine' -PercentComplete 70 -ParentId 1 -CurrentOperation $machineName;
                 Write-Host "$(Get-Date) Removing template machine $templateMachineName"
                 Remove-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null;
-                Write-Progress -Activity 'Machines creation via template' -PercentComplete (80) -ParentId 1 -CurrentOperation $machineName;
+                Write-Progress -Activity 'Machines creation via template' -PercentComplete 80 -ParentId 1 -CurrentOperation $machineName;
+            } else {
+                Write-Progress -Activity 'Machines creation via template' -PercentComplete 5 -ParentId 1 -CurrentOperation $machineName;
             }
             CreateMachine $_;
         }
     } else {
         if ( !$vm )
         {
-            Write-Progress -Activity 'Machine creation' -PercentComplete (0) -ParentId 1 -CurrentOperation $machineName;            
+            Write-Progress -Activity 'Machine creation' -PercentComplete 0 -ParentId 1 -CurrentOperation $machineName;            
             CreateMachine $_;
         }
         PrepareMachine $_;
@@ -505,13 +504,13 @@ $configParameters.Machines | % {
 }
 
 #Domain deploying
-Write-Progress -Activity 'Configuring Active Directory' -PercentComplete (70) -id 1;
+Write-Progress -Activity 'Configuring Active Directory' -PercentComplete 70 -id 1;
 if ( $azureParameters.ADConfigure )
 {
     $ADMachines = $configParameters.Machines | ? { $_.Roles -contains "AD" }
     $ADMachines | % {
         $machineName = $_.Name;
-        Write-Progress -Activity 'Configuring domain' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
+        Write-Progress -Activity 'Configuring domain' -PercentComplete 10 -CurrentOperation $machineName -ParentId 1;
         $configName = "SPDomain"
         $configFileName = "DSC$configName.ps1";
         Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
@@ -532,16 +531,31 @@ if ( $azureParameters.ADConfigure )
             MachineName = $machineName
         }
         Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+        <#
+        if ( $_.Image -and ( $_.Image -ne "" ) )
+        {
+            Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+            Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+        }
+        #>
     }
 }
 
-Write-Progress -Activity 'Joining domain' -PercentComplete (75) -id 1;
+Write-Progress -Activity 'Joining domain' -PercentComplete 75 -id 1;
+$firstAdVMName = $null;
+$configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
+    if ( !$firstAdVMName ) { $firstAdVMName = $_.Name }
+}
+$vm = Get-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -VMName $firstAdVMName;
+$networkInterfaceRef = $vm.NetworkProfile[0].NetworkInterfaces[0].id;
+$networkInterface = Get-AzureRmNetworkInterface | ? { $_.Id -eq $networkInterfaceRef }
+$azureParameters.DomainControllerIP = $networkInterface.IpConfigurations[0].PrivateIpAddress 
 if ( $azureParameters.JoinDomain )
 {
     $domainClientMachines = $configParameters.Machines | ? { !( $_.Roles -contains "AD" ) }
     $domainClientMachines | % {
         $machineName = $_.Name;
-        Write-Progress -Activity 'Joining domain' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
+        Write-Progress -Activity 'Joining domain' -PercentComplete 10 -CurrentOperation $machineName -ParentId 1;
         $configName = "DomainClient"
         $configFileName = "DSC$configName.ps1";
         Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
@@ -554,11 +568,11 @@ if ( $azureParameters.JoinDomain )
             SystemParameters = $azureParameters
             DomainAdminCredential = $DomainAdminCredential
         }
-        Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+        Set-AzureRmVmDscExtension -Version 2.7 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
     }
 }
 
-Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete (85) -id 1;
+Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete 85 -id 1;
 if ( $azureParameters.ConfigureSharePoint )
 {
 
@@ -568,10 +582,10 @@ if ( $azureParameters.ConfigureSharePoint )
     {
         $SPMachines | % {
             $machineName = $_.Name;
-            Write-Progress -Activity 'Applying SharePoint configuration' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
+            Write-Progress -Activity 'Applying SharePoint configuration' -PercentComplete 10 -CurrentOperation $machineName -ParentId 1;
             $configName = "SPFarm";
             $configFileName = "DSC$configName.ps1";
-            Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+            Write-Host "$(Get-Date) Deploying $configName extension on $machineName (except Search granule)"
             $configurationDataString = '@{ AllNodes = @( @{ NodeName = "' + $machineName + '"; PSDscAllowPlainTextPassword = $True } ) }';
             $tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
             $configurationDataString | Set-Content -Path $tempConfigDataFilePath
@@ -593,7 +607,7 @@ if ( $azureParameters.ConfigureSharePoint )
         $SearchQueryMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchQuery" }
         $SearchQueryMachines | % {
             $machineName = $_.Name;
-            Write-Progress -Activity 'Configuring SharePoint Search Topology' -PercentComplete (90) -CurrentOperation $machineName -ParentId 1;
+            Write-Progress -Activity 'Configuring SharePoint Search Topology' -PercentComplete 90 -CurrentOperation $machineName -ParentId 1;
             $configurationArguments = @{
                 ConfigParameters = $configParameters
                 SPPassphraseCredential = $SPPassphraseCredential
@@ -606,14 +620,12 @@ if ( $azureParameters.ConfigureSharePoint )
                 GranularApplying = $true
                 SearchTopologyGranule = $true
             }
-
             $configurationDataString = '@{ AllNodes = @( @{ NodeName = "' + $machineName + '"; PSDscAllowPlainTextPassword = $True } ) }';
             $tempConfigDataFilePath = $env:TEMP + "\tempconfigdata.psd1"
             $configurationDataString | Set-Content -Path $tempConfigDataFilePath
-
             $configName = "SPFarm";
             $configFileName = "DSC$configName.ps1";
-            Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+            Write-Host "$(Get-Date) Deploying $configName extension on $machineName (Search granule)"
             if ( $configParameters.SPVersion -eq "2013" ) { $configFileName = "DSCSP2013.ps1" } else { $configFileName = "DSCSP2016.ps1" }
             Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
             Remove-Item $tempConfigDataFilePath;
@@ -623,8 +635,9 @@ if ( $azureParameters.ConfigureSharePoint )
     if ( $SPMachineNames.Count -eq 1 )
     {
         $SPMachines | % {
+    
             $machineName = $_.Name;
-            Write-Progress -Activity 'Applying SharePoint configuration' -PercentComplete (10) -CurrentOperation $machineName -ParentId 1;
+            Write-Progress -Activity 'Applying SharePoint configuration' -PercentComplete 10 -CurrentOperation $machineName -ParentId 1;
             $configName = "SPFarm";
             $configFileName = "DSC$configName.ps1";
             Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
@@ -642,15 +655,15 @@ if ( $azureParameters.ConfigureSharePoint )
                 SPSearchServiceAccountCredential = $SPSearchServiceAccountCredential
                 SPCrawlerAccountCredential = $SPCrawlerAccountCredential
             }
-            Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            Set-AzureRmVmDscExtension -Version 2.70 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
         }
     }        
 }
 
-Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete (100) -id 1;
-Write-Host "$(Get-Date) Stopping all the machines"
+Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete 100 -id 1;
 if ( $azureParameters.ShutDownAfterProvisioning )
 {
+    Write-Host "$(Get-Date) Stopping all the machines"
     $configParameters.Machines | ? { $_.Roles -notcontains "AD" } | % {
         Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
     }

@@ -21,10 +21,12 @@ Configuration SQLInstall
     Node $AllNodes.NodeName
     {
         # Is it really needed when running via Azure Automation? or only manually
+        <#
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true;
         }
+        #>
         
         xFireWall SQLFirewallRule
         {
