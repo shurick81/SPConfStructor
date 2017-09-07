@@ -161,7 +161,7 @@ if ( !$subscription )
     Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
     Write-Host "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
     Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
-    Login-AzureRmAccount
+    Login-AzureRmAccount | Out-Null;
 }
 
 #compiling domain

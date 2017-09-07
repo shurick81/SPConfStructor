@@ -13,7 +13,7 @@ if ( !$subscription )
     Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
     Write-Host "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
     Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
-    Login-AzureRmAccount
+    Login-AzureRmAccount | Out-Null;
 }
 $azureParameters = Import-PowershellDataFile azureParameters.psd1;
 Remove-AzureRmResourceGroup -Name $azureParameters.ResourceGroupName -Force | Out-Null;

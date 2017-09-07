@@ -18,7 +18,7 @@ if ( !$subscription )
     Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
     Write-Host "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
     Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
-    Login-AzureRmAccount
+    Login-AzureRmAccount | Out-Null;
 }
 $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
     Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name;
