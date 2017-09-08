@@ -3,11 +3,13 @@ Configuration SPLoadingInstallationFiles
     param(
         $configParameters,
         $systemParameters,
-        $commonDictionary
+        $commonDictionary,
+        $azureStorageAccountKey
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile
+    Import-DscResource -ModuleName cAzureStorage
     Import-DscResource -ModuleName xStorage
 
     $SPImageLocation = $systemParameters.SPImageLocation
@@ -16,9 +18,11 @@ Configuration SPLoadingInstallationFiles
 
     Node $AllNodes.NodeName
     {
+
+        $mountDependsOn = $null;
         if ( $systemParameters.SPImageSource -eq "Public" )
         {
-            $spImageUrl = $commonDictionary.SPVersions[$SPVersion].RTMImageUrl;
+            $spImageUrl = $commonDictionary.SPVersions[ $SPVersion ].RTMImageUrl;
             $SPImageUrl -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
             $SPImageFileName = $matches[0]
             $SPImageDestinationPath = "$SPImageLocation\$SPImageFileName"
@@ -28,31 +32,48 @@ Configuration SPLoadingInstallationFiles
                 Uri             = $SPImageUrl
                 DestinationPath = $SPImageDestinationPath
             }
+
+            $mountDependsOn = @( "[xRemoteFile]SPServerImageFile" )
+        } else {
+            $SPImageFileName = $systemParameters.SPImageFileName            
+        }
+        if ( $systemParameters.SPImageSource -eq "AzureBlob" )
+        {
+
+            cAzureStorage SPServerImageFile {
+                Path                    = $systemParameters.SPImageLocation
+                StorageAccountName      = $systemParameters.ImageStorageAccount
+                StorageAccountContainer = $systemParameters.SPImageAzureContainerName
+                StorageAccountKey       = $azureStorageAccountKey
+            }
+
+            $mountDependsOn = @( "[cAzureStorage]SPServerImageFile" )
             
         }
         if ( $systemParameters.SPImageUnpack )
         {
+            $SPImagePath = "$SPImageLocation\$SPImageFileName"
 
-            if ( $systemParameters.SPImageSource -eq "Public" )
+            if ( $mountDependsOn )
             {
-                $SPImagePath = "$SPImageLocation\$SPImageFileName"
+
                 xMountImage SPServerImageMount
                 {
                     ImagePath   = $SPImagePath
                     DriveLetter = 'P'
-                    DependsOn   = @("[xRemoteFile]SPServerImageFile")
-                }
-            
-            } else {
-                $SPImageFileName = $systemParameters.SPImageFileName
-                $SPImagePath = "$SPImageLocation\$SPImageFileName"
-                xMountImage SPServerImageMount
-                {
-                    ImagePath   = $SPImagePath
-                    DriveLetter = 'P'
+                    DependsOn   = $mountDependsOn
                 }
 
+            } else {
+                
+                xMountImage SPServerImageMount
+                {
+                    ImagePath   = $SPImagePath
+                    DriveLetter = 'P'
+                }
+                
             }
+
             xWaitForVolume WaitForSPServerImageMount
             {
                 DriveLetter         = 'P'
@@ -61,6 +82,7 @@ Configuration SPLoadingInstallationFiles
                 DependsOn           = "[xMountImage]SPServerImageMount"
             }
 
+            <#
             File SPServerInstallatorDirectory
             {
                 Ensure          = "Present"
@@ -71,47 +93,85 @@ Configuration SPLoadingInstallationFiles
                 DependsOn       = "[xWaitForVolume]WaitForSPServerImageMount"
             }
 
-        }
-
-        $SPServicePack = $configParameters.SPServicePack;
-        if ( $SPServicePack -and ( $SPServicePack -ne "" ) )
-        {
-            if ( $systemParameters.SPServicePackSource -eq "Public" )
+            $SPCumulativeUpdateParameter = $configParameters.SPCumulativeUpdate
+            if ( $SPCumulativeUpdateParameter -and ( $$SPCumulativeUpdateParameter -ne "") )
             {
-                $spServicePackUrl = $commonDictionary.SPVersions[$SPVersion].ServicePacks[$SPServicePack].Url;
-                $SPServicePackURL -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
-                $SPServicePackFileName = $matches[0]
-
-                xRemoteFile SPServicePackFile
-                {
-                    Uri             = "$SPServicePackURL"
-                    DestinationPath = "$SPInstallationMediaPath\Updates\$SPServicePackFileName"
-                }
-
-            }
-        }
-
-        if ( $systemParameters.SPCumulativeUpdateSource -eq "Public" )
-        {
-            $SPCumulativeUpdate = $configParameters.SPCumulativeUpdate;
-            if ( $SPCumulativeUpdate -and ( $SPCumulativeUpdate -ne "" ) )
-            {
-                $spCumulativeUpdateUrls = $commonDictionary.SPVersions[$SPVersion].CumulativeUpdates[$SPCumulativeUpdate].Urls;
-                $SPCumulativeUpdateUrls | % {
-                    $SPCumulativeUpdateUrl = $_
-                    $SPCumulativeUpdateUrl -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
-                    $SPCumulativeUpdateFileName = $matches[0]
-
-                    xRemoteFile "SPCumulativeUpdateFile$counter"
+                $temporaryFilesFolderPath = "C:\temp\SPCU\$SPVersion\$SPCumulativeUpdateParameter"
+                $filesCounter = 0
+                $commonDictionary.SPVersions[ $SPVersion ].CumulativeUpdates[ $SPCumulativeUpdateParameter ].Urls | % {
+                    $_ -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
+                    $SPCUFileName = $matches[0]
+                    $SPCUFilePath = "$temporaryFilesFolderPath\$SPCUFileName"
+                    xRemoteFile "SPCumulativeUpdateDownloading$filesCounter"
                     {
-                        Uri             = "$SPCumulativeUpdateURL"
-                        DestinationPath = "$SPInstallationMediaPath\Updates\$SPCumulativeUpdateFileName"
+                        Uri             = $_
+                        DestinationPath = $SPCUFilePath
                     }
 
-                    $counter++;
+                    $SPCUFileName -match '\.[^.]+$' | Out-Null
+                    if ( $match[0] -eq ".exe" )
+                    {
+
+                        Script "CumulativeUpdateIncorporating$filesCounter"
+                        {
+                            SetScript = ( {
+                                 {0} /extract: {1}\Updates\
+                            } -f @( $SPCUFilePath, $SPInstallationMediaPath ) )
+                            TestScript = ( {
+                                Get-ChildItem {0}\Updates | ? { $_.Name -ne "readme.txt" } | % { return $true }
+                                return $false
+                            } -f @( $SPInstallationMediaPath ) )
+                            GetScript = ( {
+                                $extractedFiles = Get-ChildItem {0}\Updates | ? { $_.Name -ne "readme.txt" }
+                                return @{ Result = "$extractedFiles" }
+                            }
+                        }
+
+                    }
+    
+                    $filesCounter++;
                 }
             }
-        }
+            #>
 
+            <#
+            xRemoteFile AutoSPSourceBuilderPs1
+            {
+                Uri             = "https://raw.githubusercontent.com/brianlala/AutoSPSourceBuilder/master/AutoSPSourceBuilder.ps1"
+                DestinationPath = "C:\temp\AutoSPSourceBuilder\AutoSPSourceBuilder.ps1"
+            }
+            #>
+
+            cAzureStorage AutoSPSourceBuilderPs1File {
+                Path                    = "C:\temp\AutoSPSourceBuilder"
+                StorageAccountName      = $systemParameters.ImageStorageAccount
+                StorageAccountContainer = "psscripts"
+                StorageAccountKey       = $azureStorageAccountKey
+            }
+
+            xRemoteFile AutoSPSourceBuilderXml
+            {
+                Uri             = "https://raw.githubusercontent.com/brianlala/AutoSPSourceBuilder/master/AutoSPSourceBuilder.xml"
+                DestinationPath = "C:\temp\AutoSPSourceBuilder\AutoSPSourceBuilder.xml"
+            }
+            
+            $resultString = '@{ Result = "$extractedFiles" }'
+            Script AutoSPSourceBuilderRunning
+            {
+                SetScript = ( {
+                    C:\temp\AutoSPSourceBuilder\AutoSPSourceBuilder.ps1 -SourceLocation "P:" -Destination "{0}" -CumulativeUpdate "{1}" -Languages "{2}"
+                } -f @( $SPInstallationMediaPath, $configParameters.SPCumulativeUpdate, $configParameters.SPLanguagePacks ) )
+                TestScript = ( {
+                    Get-ChildItem {0}\{1}\SharePoint\Updates -ErrorAction SilentlyContinue | ? {{ $_.Name -ne "readme.txt" }} | % {{ return $true }}
+                    return $false
+                } -f @( $SPInstallationMediaPath, $SPVersion ) )
+                GetScript = ( {
+                    $extractedFiles = Get-ChildItem {0}\{1}\SharePoint\Updates -ErrorAction SilentlyContinue | ? {{ $_.Name -ne "readme.txt" }}
+                    return {2}
+                } -f @( $SPInstallationMediaPath, $SPVersion, $resultString ) )
+                DependsOn = @( "[xWaitForVolume]WaitForSPServerImageMount", "[cAzureStorage]AutoSPSourceBuilderPs1File", "[xRemoteFile]AutoSPSourceBuilderXml" )
+            }
+    
+        }
     }
 }

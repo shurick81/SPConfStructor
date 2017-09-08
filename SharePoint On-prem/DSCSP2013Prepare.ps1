@@ -11,13 +11,11 @@ Configuration SP2013Prepare
 
     Node $AllNodes.NodeName
     {
-        #Only needed for manual mof installation, not for automated?
-        <#
+        
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true;
         }
-        #>
          
         Registry LoopBackRegistry
         {
@@ -63,6 +61,6 @@ Configuration SP2013Prepare
             Name        = 'AfterNETUninstalling'
             DependsOn   = @( "[xHotfix]RemoveWin2012DotNet47", "[xHotfix]RemoveWin2012R2DotNet461", "[xHotfix]RemoveWin2012R2DotNet47" )
         }
-        
+
     }
 }

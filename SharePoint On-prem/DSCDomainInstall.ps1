@@ -24,7 +24,7 @@ Configuration DomainInstall
 
         WindowsFeatureSet DomainFeatures
         {
-            Name                    = @("DNS", "RSAT-DNS-Server", "AD-Domain-Services", "RSAT-ADDS")
+            Name                    = @( "DNS", "RSAT-DNS-Server", "AD-Domain-Services", "RSAT-ADDS" )
             Ensure                  = 'Present'
             IncludeAllSubFeature    = $true
         } 

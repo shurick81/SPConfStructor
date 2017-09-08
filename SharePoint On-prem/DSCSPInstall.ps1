@@ -12,11 +12,13 @@ Configuration SPInstall
     Import-DSCResource -ModuleName xSQLServer -Name xSQLServerAlias
     Import-DSCResource -ModuleName SharePointDSC
 
+    $SPInstallationMediaPath = $configParameters.SPInstallationMediaPath
+    $SPVersion = $configParameters.SPVersion;
 
     Node $AllNodes.NodeName
     {
         $logFolder = $configParameters.SPLogFolder;
-        #Only needed for manual mof installation, not for automated?
+        
         <#
         LocalConfigurationManager
         {
@@ -32,11 +34,11 @@ Configuration SPInstall
         
         SPInstallPrereqs SPPrereqs
         {
-            InstallerPath   = "$($configParameters.SPInstallationMediaPath)\Prerequisiteinstaller.exe"
+            InstallerPath   = "$SPInstallationMediaPath\$SPVersion\SharePoint\Prerequisiteinstaller.exe"
             OnlineMode      = $true
         }
 
-        if ( $configParameters.SPVersion -eq "2016" )
+        if ( $SPVersion -eq "2013" )
         {
 
             xPendingReboot RebootAfterSPPrereqsInstalling
@@ -51,11 +53,25 @@ Configuration SPInstall
         SPInstall InstallSharePoint 
         { 
             Ensure      = "Present"
-            BinaryDir   = $configParameters.SPInstallationMediaPath
+            BinaryDir   = "$SPInstallationMediaPath\$SPVersion\SharePoint"
             ProductKey  = $configParameters.SPProductKey
             DependsOn   = $installationDependsOn
         }
 
+        $languages = $configParameters.SPLanguagePacks.Split(",")
+        $resourceCounter = 0;
+        $languages | % {
+
+            SPInstallLanguagePack "InstallLPBinaries$resourceCounter"
+            {
+                BinaryDir  = "$SPInstallationMediaPath\$SPVersion\LanguagePacks\$_"
+                Ensure     = "Present"
+                DependsOn   = "[SPInstall]InstallSharePoint"
+            }
+
+            $resourceCounter++;
+        }
+        
         xIISLogging RootWebAppIISLogging
         {
             LogPath     = "$logFolder\IIS"

@@ -64,6 +64,7 @@ Configuration SPDomain
             RebootNodeIfNeeded = $true;
         }
 
+        <#
         WindowsFeatureSet DomainFeatures
         {
             Name                    = @( "DNS", "RSAT-DNS-Server", "AD-Domain-Services", "RSAT-ADDS" )
@@ -82,13 +83,16 @@ Configuration SPDomain
            Ensure               = 'Present'
            UserAuthentication   = 'NonSecure'
         }
+        #>
 
         xADDomain ADDomain
         {
             DomainName                      = $configParameters.DomainName
             DomainAdministratorCredential   = $ShortDomainAdminCredential
             SafemodeAdministratorPassword   = $DomainSafeModeAdministratorPasswordCredential
+            <#
             DependsOn                       = @( "[xRemoteDesktopAdmin]DCRDPSettings" )
+            #>
         }
 
         xWaitForADDomain WaitForDomain

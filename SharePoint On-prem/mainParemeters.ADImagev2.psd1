@@ -1,8 +1,5 @@
 @{
     SPVersion = "2013"
-    #Refer to https://github.com/brianlala/AutoSPSourceBuilder/blob/master/AutoSPSourceBuilder.xml for selecting a correct CU name
-    SPCumulativeUpdate = "June 2017" #must not be empty
-    SPLanguagePacks = "ru-ru,sv-se,nb-no" #must not be empty
     DomainName = "sp.local"
     #machine name restriction: 15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
     #roles: AD, SQL, SharePoint, WFE, Application, DistributedCache, SearchQuery, SearchCrawl, SingleServerFarm, OOS, WFM, Addins, Admin, Code, Client, Configuration
@@ -10,43 +7,13 @@
     # WinVersion options: "2016", "2012R2", "2012"
     #ProvisioninngType options: Image, Url, Manual
     Machines = @(
-        <#
         @{
-            Name = "SP2013Ent01dc01"
-            Roles = "AD"
-            Memory = 1.5
-            DiskSize = 30
-            WinVersion = "2016"
-            Image = "Win2016ADv003"
-        }
-        #>
-        <#
-        @{
-            Name = "SP2013Ent01cl01"
-            Roles = @()
-            Memory = 1.5
-            DiskSize = 30
-            WinVersion = "2016"
-            Image = ""
-        }
-        #>
-        <#
-        @{
-            Name = "SP2013Ent01dc02"
+            Name = "ADImagedc01"
             Roles = "AD"
             Memory = 1.5
             DiskSize = 30
             WinVersion = "2016"
             Image = "Win2016ADv002"
-        }
-        #>
-        @{
-            Name = "SP2013Ent01sp01"
-            Roles = "SQL", "SharePoint", "SingleServerFarm", "Configuration"
-            Memory = 14
-            DiskSize = 120
-            WinVersion = "2012R2"
-            Image = ""
         }
     )
     SPDatabaseServer = "SP2013Ent01sp01"
@@ -82,12 +49,14 @@
     SQLPass = "P@ssw0rd"
     SPDatabaseAlias = "SPDB"
     SQLInstallationMediaPath = "C:\Install\SQLMedia"
-    SPInstallationMediaPath = "C:\Install\SPInstall"
+    SPInstallationMediaPath = "C:\Install\SPMedia"
     SSMSInstallationFolderPath = "C:\Install\SSMS"
     SSMSVersion = "17.2"
     SPLogFolder = "C:\SPLogs"
 
+    SPServicePack = "" #don't use
+    SPCumulativeUpdate = "201708" #don't use
     SPLanguage = "English" #don't use
-    SPServicePack = "SP1" #don't use
+    SPLanguagePacks = @("Swedish") #don't use
     SPMultitenancy = $false #don't use
 }

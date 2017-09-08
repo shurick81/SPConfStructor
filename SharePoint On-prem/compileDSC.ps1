@@ -206,10 +206,8 @@ $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % {
     $storageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
     . .\DSCSP2013Prepare.ps1
     SP2013Prepare -ConfigurationData $configurationData -ConfigParameters $configParameters
-    . .\DSCSP2013AzureLoadingInstallationFiles.ps1
-    SP2013AzureLoadingInstallationFiles -ConfigurationData $configurationData -AzureParameters $azureParameters -AzureStorageAccountKey $storageAccountKey.Value
     . .\DSCSPLoadingInstallationFiles.ps1
-    SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary
+    SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary -AzureStorageAccountKey $storageAccountKey.Value
     . .\DSCSPInstall.ps1
     SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters;
 }
@@ -224,6 +222,7 @@ $configParameters.Machines | ? { $_.Roles -contains "Configuration" } | % {
 }
 
 #compiling domain machine adding
+<#
 $firstAdVMName = $null;
 $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
     if ( !$firstAdVMName ) { $firstAdVMName = $_.Name }
@@ -238,7 +237,7 @@ $configParameters.Machines | ? { !( $_.Roles -contains "AD" ) } | % {
     ) }
     . .\DSCDomainClient.ps1
     DomainClient -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -DomainAdminCredential $DomainAdminCredential
-}
+}#>
 
 #compiling SPFarm configuration
 $SPMachines = $configParameters.Machines | ? { $_.Roles -contains "SharePoint" }
