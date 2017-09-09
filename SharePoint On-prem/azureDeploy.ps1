@@ -486,6 +486,7 @@ $configParameters.Machines | % {
                     DiskSize = $_.DiskSize
                     WinVersion = $_.WinVersion
                 }
+                Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 0 -ParentId 1 -CurrentOperation "Creating $templateMachineName temporary";
                 CreateMachine $templateMachineParameters;  
                 PrepareMachine $templateMachineParameters;
                 if ( $azureParameters.PauseBeforeImaging )
@@ -531,7 +532,11 @@ $configParameters.Machines | % {
             }
             CreateMachine $_;
         }
-    } else {
+        if ( $azureParameters.PrepareMachinesAfterImage )
+        {
+            PrepareMachine $_;
+        }
+} else {
         if ( !$vm )
         {
             Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 0 -ParentId 1 -CurrentOperation "Creating $machineName machine";            

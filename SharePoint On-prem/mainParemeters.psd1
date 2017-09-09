@@ -42,11 +42,11 @@
         #>
         @{
             Name = "SP2013Ent01sp01"
-            Roles = "SQL", "SharePoint", "SingleServerFarm", "Configuration"
+            Roles = "SharePoint", "SingleServerFarm", "Configuration"
             Memory = 14
             DiskSize = 120
             WinVersion = "2012R2"
-            Image = ""
+            Image = "Win2012R2SP2013SP1CU201706EnRuSwNoV001"
         }
     )
     SPDatabaseServer = "SP2013Ent01sp01"

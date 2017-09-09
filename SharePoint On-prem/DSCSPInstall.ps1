@@ -19,12 +19,10 @@ Configuration SPInstall
     {
         $logFolder = $configParameters.SPLogFolder;
         
-        <#
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true;
         }
-        #>
         
         File LogFolder
         {

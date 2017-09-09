@@ -8,9 +8,10 @@
     LocalAdminUserName = "splocaladm"
     LocalAdminPassword = "123$%^qweRTY"
 
-    DeleteResourceGroup = $false
-    PrepareResourceGroup = $false
+    DeleteResourceGroup = $true
+    PrepareResourceGroup = $true
     PrepareMachines = $true
+    PrepareMachinesAfterImage = $true
     ADInstall = $true
     #SQLImageSourceOptions: Public, Skip
     SQLImageSource = "Skip"
@@ -18,13 +19,13 @@
     SQLImageUnpack = $false
     SQLInstall = $false
     #SPImageSource options: Public, AzureBlob, Skip
-    SPImageSource = "AzureBlob"
+    SPImageSource = "Skip"
     #Valid names start and end with a lower case letter or a number and has in betweena lower case letter, number or dash with no consecutive dashes and is 3 through 63 characters long.
     SPImageAzureContainerName = "sp2013withsp1msdn"
     SPImageFolderUNC = ""
     SPImageFileName = "en_sharepoint_server_2013_with_sp1_x64_dvd_3823428.iso"
     SPImageLocation = "C:\Install\SPImage"
-    SPImageUnpack = $true
+    SPImageUnpack = $false
     SPInstall = $true
     ConfigurationToolsInstallation = $false
     ADConfigure = $false
@@ -33,7 +34,7 @@
     ShutDownAfterProvisioning = $false
 
     SubnetIpAddress = "192.168.0.0"
-    PauseBeforeImaging = $true
+    PauseBeforeImaging = $false
     AzureMachineSizes = @(
         @{ MinMemory = 0; Size = "Basic_A1" },
         @{ MinMemory = 1.75; Size = "Basic_A2" },
