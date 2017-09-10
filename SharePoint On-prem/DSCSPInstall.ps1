@@ -36,7 +36,7 @@ Configuration SPInstall
             OnlineMode      = $true
         }
 
-        if ( $SPVersion -eq "2013" )
+        if ( $SPVersion -eq "2016" )
         {
 
             xPendingReboot RebootAfterSPPrereqsInstalling
@@ -76,11 +76,13 @@ Configuration SPInstall
             DependsOn   = $installationDependsOn,"[File]LogFolder"
         }
 
+        <#
         xPendingReboot RebootAfterSPInstalling
         { 
             Name        = 'AfterSPInstalling'
             DependsOn   = "[SPInstall]InstallSharePoint"
         }
+        #>
 
     }
 }

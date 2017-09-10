@@ -359,22 +359,6 @@ function PrepareMachine ( $machineParameters ) {
                 }
                 Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
-            <#
-            if ( $azureParameters.SPImageSource -eq "AzureBlob" )
-            {
-                Write-Progress -Activity 'SharePoint server installation files downloading' -PercentComplete 45 -CurrentOperation $machineName -ParentId 1;
-                $configName = "SP$($SPVersion)AzureLoadingInstallationFiles";
-                $configFileName = "DSC$configName.ps1";
-                Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
-                Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
-                $key = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
-                $configurationArguments = @{
-                    AzureParameters = $azureParameters
-                    AzureStorageAccountKey = $key.Value
-                }
-                Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
-            }
-            #>
             if ( ( $azureParameters.SPImageSource -eq "Public" ) -or ( $azureParameters.SPImageSource -eq "AzureBlob" ) -or $azureParameters.SPImageUnpack )
             {
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 40 -CurrentOperation "Downloading SP media on $machineName" -ParentId 1;
@@ -402,24 +386,6 @@ function PrepareMachine ( $machineParameters ) {
                 }
                 Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
-            <#
-            $SPCumulativeUpdateParameter = $configParameters.SPCumulativeUpdate;
-            $SPLanguageParameter = $configParameters.SPCumulativeUpdate;
-            if ( $SPCumulativeUpdateParameter -and ( $SPCumulativeUpdateParameter -ne "" ) )
-            {
-                Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 45 -CurrentOperation "Downloading cumulative updates $machineName" -ParentId 1;
-                $containerName = "psscripts";
-                $fileName = "AutoSPSourceBuilder.ps1"
-                Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName;
-                $existingStorageContainer = $null;
-                $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
-                if ( !$existingStorageContainer )
-                {
-                    New-AzureStorageContainer -Name $containerName -Permission Off | Out-Null;
-                }
-                Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force | Out-Null;
-
-            }#>
             if ( $azureParameters.SPInstall )
             {
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 50 -CurrentOperation "SharePoint binaries installation $machineName" -ParentId 1;
@@ -430,7 +396,7 @@ function PrepareMachine ( $machineParameters ) {
                 $configurationArguments = @{
                     ConfigParameters = $configParameters
                 }
-                Set-AzureRmVmDscExtension -Version 2.21 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+                Set-AzureRmVmDscExtension -Version 2.7 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
         }
         if ( $machineParameters.Roles -contains "Configuration" )
@@ -477,7 +443,7 @@ $configParameters.Machines | % {
                 Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
                 Write-Host "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
                 Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
-                $templateMachineName = "TemplateMachine";
+                $templateMachineName = "templatemachine";
                 Write-Host "$(Get-Date) Creating $templateMachineName temporary"
                 $templateMachineParameters = @{
                     Name = $templateMachineName
@@ -496,6 +462,7 @@ $configParameters.Machines | % {
                 }
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 60 -ParentId 1 -CurrentOperation "Extracting image from template VM $templateMachineName";
                 Write-Host "$(Get-Date) Deploying sysprep extension on $templateMachineName"
+                Remove-AzureRmVMDscExtension -ResourceGroupName $resourceGroupName -VMName $templateMachineName;
                 $containerName = "psscripts";
                 $fileName = "sysprep.ps1";
                 Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName | Out-Null;
@@ -536,13 +503,26 @@ $configParameters.Machines | % {
         {
             PrepareMachine $_;
         }
-} else {
+    } else {
         if ( !$vm )
         {
             Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 0 -ParentId 1 -CurrentOperation "Creating $machineName machine";            
             CreateMachine $_;
         }
         PrepareMachine $_;
+    }
+    if ( $_.Roles -contains "AD" )
+    {
+        $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -VMName $machineName;
+        $networkInterfaceRef = $vm.NetworkProfile[0].NetworkInterfaces[0].id;
+        $networkInterface = Get-AzureRmNetworkInterface | ? { $_.Id -eq $networkInterfaceRef }
+        $networkInterface.IpConfigurations[0].PrivateIpAllocationMethod = "Static"
+        Set-AzureRmNetworkInterface -NetworkInterface $networkInterface | Out-Null;
+
+        $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -name $vnetName;
+        $vnet.DhcpOptions.DnsServers = $networkInterface.IpConfigurations[0].PrivateIpAddress;
+        $vnet.DhcpOptions.DnsServers += "8.8.8.8";
+        Set-AzureRmVirtualNetwork -VirtualNetwork $vnet | Out-Null;
     }
     $machineCounter++;
 }
@@ -576,6 +556,7 @@ if ( $azureParameters.ADConfigure )
             $host.UI.RawUI.ReadKey() | Out-Null
         }
         #>
+
         $configName = "SPDomain"
         $configFileName = "DSC$configName.ps1";
         Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
@@ -606,10 +587,6 @@ if ( $azureParameters.JoinDomain )
     $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
         if ( !$firstAdVMName ) { $firstAdVMName = $_.Name }
     }
-    $vm = Get-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -VMName $firstAdVMName;
-    $networkInterfaceRef = $vm.NetworkProfile[0].NetworkInterfaces[0].id;
-    $networkInterface = Get-AzureRmNetworkInterface | ? { $_.Id -eq $networkInterfaceRef }
-    $azureParameters.DomainControllerIP = $networkInterface.IpConfigurations[0].PrivateIpAddress 
     $domainClientMachines = $configParameters.Machines | ? { !( $_.Roles -contains "AD" ) }
     $domainClientMachines | % {
         $machineName = $_.Name;

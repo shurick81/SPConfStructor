@@ -25,7 +25,7 @@ Configuration DomainClient
             RebootNodeIfNeeded = $true;
         }
 
-        if ( $systemParameters.DomainControllerIP )
+        if ( $false )
         {
             $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
             $interfaceAlias = "Ethernet"
