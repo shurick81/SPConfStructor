@@ -222,7 +222,6 @@ $configParameters.Machines | ? { $_.Roles -contains "Configuration" } | % {
 }
 
 #compiling domain machine adding
-<#
 $firstAdVMName = $null;
 $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
     if ( !$firstAdVMName ) { $firstAdVMName = $_.Name }
@@ -237,7 +236,7 @@ $configParameters.Machines | ? { !( $_.Roles -contains "AD" ) } | % {
     ) }
     . .\DSCDomainClient.ps1
     DomainClient -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -DomainAdminCredential $DomainAdminCredential
-}#>
+}
 
 #compiling SPFarm configuration
 $SPMachines = $configParameters.Machines | ? { $_.Roles -contains "SharePoint" }
