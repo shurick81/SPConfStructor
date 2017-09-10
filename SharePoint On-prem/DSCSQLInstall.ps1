@@ -55,6 +55,20 @@ Configuration SQLInstall
             DependsOn   = "[WindowsFeature]NetFramework35Core"
         }
 
+        xSQLServerSetup SQLSetup
+        {
+            InstanceName        = "MSSQLServer"
+            SourcePath          = $configParameters.SQLInstallationMediaPath
+            Features            = "SQLENGINE,FULLTEXT"
+            InstallSharedDir    = "C:\Program Files\Microsoft SQL Server"
+            #Mixed authentication is needed for Access Services
+            SecurityMode        = 'SQL'
+            SQLSysAdminAccounts = "BUILTIN\Administrators"
+            SAPwd               = $SQLPassCredential
+            DependsOn           = "[xPendingReboot]RebootBeforeSQLInstalling"
+        }
+
+        <#
         if ( !( ( $configParameters.Machines | ? { $_.Name -eq $machineName } ).Roles -contains "AD" ) )
         {
             #Local DB admin group
@@ -84,6 +98,7 @@ Configuration SQLInstall
             SAPwd               = $SQLPassCredential
             DependsOn           = $SQLDependsOn
         }
+        #>
         <#
         if ( !( ( $configParameters.Machines | ? { $_.Name -eq $machineName } ).Roles -contains "AD" ) )
         {

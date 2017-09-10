@@ -94,21 +94,6 @@ Configuration SPFarm
                 ServerName  = $DBServer
             }
 
-            <#
-            xCredSSP CredSSPServer
-            {
-                Ensure  = "Present"
-                Role    = "Server"
-            }
-
-            xCredSSP CredSSPClient
-            {
-                Ensure = "Present";
-                Role = "Client";
-                DelegateComputers = "*.$DomainName"
-            }
-            #>
-
             $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
             $isWFE = ( $machineParameters.Roles -contains "WFE" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
             $isApplication = ( $machineParameters.Roles -contains "Application" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
@@ -140,7 +125,7 @@ Configuration SPFarm
                     CentralAdministrationPort = 50555
                     ServerRole                = "SingleServerFarm"
                     PsDscRunAsCredential      = $SPInstallAccountCredential
-                    DependsOn                 = @( <#"[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient",#> "[xSQLServerAlias]SPDBAlias" )
+                    DependsOn                 = @( "[xSQLServerAlias]SPDBAlias" )
                 }
 
             }

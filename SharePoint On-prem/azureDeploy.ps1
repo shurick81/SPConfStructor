@@ -439,11 +439,8 @@ $configParameters.Machines | % {
         if ( !$vm )
         {
             $image = $null;
-            $image = Get-AzureRMImage -ResourceGroupName $azureParameters.ImageResourceGroupName -ImageName $_.Image -ErrorAction SilentlyContinue;
+            $image = Get-AzureRMImage -ResourceGroupName $azureParameters.ImageResourceGroupName | ? { $_.Name -eq $_.Image };
             if ( !$image ) {
-                Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-                Write-Host "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
-                Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
                 $templateMachineName = "templatemachine";
                 Write-Host "$(Get-Date) Creating $templateMachineName temporary"
                 $templateMachineParameters = @{
@@ -488,7 +485,7 @@ $configParameters.Machines | % {
                 Write-Host "$(Get-Date) Extracting image $templateMachineName"
                 $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName;
                 $image = New-AzureRmImageConfig -Location $resourceGroupLocation -SourceVirtualMachineId $vm.ID;
-                New-AzureRmImage -Image $image -ImageName $_.Image -ResourceGroupName $azureParameters.ImageResourceGroupName;
+                New-AzureRmImage -Image $image -ImageName $_.Image -ResourceGroupName $azureParameters.ImageResourceGroupName | Out-Null;
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 70 -ParentId 1 -CurrentOperation "Removing template machine $templateMachineName";
                 Write-Host "$(Get-Date) Removing template machine $templateMachineName";
                 $vm = Get-AzureRmVM $resourceGroupName $templateMachineName;
