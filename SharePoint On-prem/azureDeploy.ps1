@@ -395,6 +395,7 @@ function PrepareMachine ( $machineParameters ) {
                 Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
                 $configurationArguments = @{
                     ConfigParameters = $configParameters
+                    CommonDictionary = $commonDictionary
                 }
                 Set-AzureRmVmDscExtension -Version 2.7 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configFileName.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
@@ -461,8 +462,9 @@ $configParameters.Machines | % {
                     $host.UI.RawUI.ReadKey() | Out-Null
                 }
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 60 -ParentId 1 -CurrentOperation "Extracting image from template VM $templateMachineName";
-                Write-Host "$(Get-Date) Deploying sysprep extension on $templateMachineName"
+                Write-Host "$(Get-Date) Removing DSC extension from $templateMachineName"
                 Remove-AzureRmVMDscExtension -ResourceGroupName $resourceGroupName -VMName $templateMachineName;
+                Write-Host "$(Get-Date) Deploying sysprep extension on $templateMachineName"
                 $containerName = "psscripts";
                 $fileName = "sysprep.ps1";
                 Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName | Out-Null;

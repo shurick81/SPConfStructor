@@ -1,7 +1,8 @@
 Configuration SPInstall
 {
     param(
-        $configParameters
+        $configParameters,
+        $commonDictionary
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -14,7 +15,11 @@ Configuration SPInstall
 
     $SPInstallationMediaPath = $configParameters.SPInstallationMediaPath
     $SPVersion = $configParameters.SPVersion;
-
+    $SPProductKey = $configParameters.SPProductKey;
+    if ( !$SPProductKey -or ( $SPProductKey -eq "" ) )
+    {
+        $SPProductKey = $commonDictionary.SPVersions[ $SPVersion ].ProductKey;
+    }
     Node $AllNodes.NodeName
     {
         $logFolder = $configParameters.SPLogFolder;
@@ -52,7 +57,7 @@ Configuration SPInstall
         { 
             Ensure      = "Present"
             BinaryDir   = "$SPInstallationMediaPath\$SPVersion\SharePoint"
-            ProductKey  = $configParameters.SPProductKey
+            ProductKey  = $SPProductKey
             DependsOn   = $installationDependsOn
         }
 

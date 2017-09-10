@@ -54,6 +54,12 @@ Configuration SPFarm
     $SearchQueryMachines = $configParameters.Machines | ? { ( $_.Roles -contains "SearchQuery" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
     $SearchCrawlerMachines = $configParameters.Machines | ? { ( $_.Roles -contains "SearchCrawl" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
     $SPVersion = $configParameters.SPVersion;
+    $DBServer = $configParameters.SPDatabaseServer;
+    if ( !$DBServer -or ( $DBServer -eq "" ) )
+    {
+        $DBServer = $null;
+        $configParameters.Machines | ? { $_.Roles -contains "SQL" } | % { if ( !$DBServer ) { $DBServer = $_.Name } }
+    }
     
     if ( !$GranularApplying -or !$SearchTopologyGranule )
     {
@@ -85,7 +91,7 @@ Configuration SPFarm
             {
                 Ensure      = 'Present'
                 Name        = $configParameters.SPDatabaseAlias
-                ServerName  = $configParameters.SPDatabaseServer
+                ServerName  = $DBServer
             }
 
             <#

@@ -209,7 +209,7 @@ $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % {
     . .\DSCSPLoadingInstallationFiles.ps1
     SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary -AzureStorageAccountKey $storageAccountKey.Value
     . .\DSCSPInstall.ps1
-    SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters;
+    SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary;
 }
 
 #compiling configuration machines provisioning
