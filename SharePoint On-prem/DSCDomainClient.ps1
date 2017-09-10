@@ -18,8 +18,15 @@ Configuration DomainClient
     Import-DscResource -ModuleName xCredSSP
     #>
     
+    <#
+    $domainClientMachines = $configParameters.Machines | ? { !( $_.Roles -contains "AD" ) } | % { $_.Name }
+    #>
+
     Node $AllNodes.NodeName
     {        
+
+        $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
+
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true;
@@ -27,7 +34,6 @@ Configuration DomainClient
 
         if ( $false )
         {
-            $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
             $interfaceAlias = "Ethernet"
             $winVersion = $machineParameters.WinVersion;
             $imageParameter = $machineParameters.Image;
