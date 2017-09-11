@@ -372,6 +372,13 @@ Configuration SPFarm
                 DependsOn               = "[SPManagedAccount]ApplicationWebPoolAccount"
             }
 
+            SPContentDatabase ContentDB 
+            {
+                Name                 = "SP_Content_01"
+                WebAppUrl            = "http://$webAppHostName"
+                PsDscRunAsCredential = $SPInstallAccountCredential
+            }
+            
             SPCacheAccounts CacheAccounts
             {
                 WebAppUrl               = "http://$webAppHostName"
