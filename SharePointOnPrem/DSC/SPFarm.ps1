@@ -67,12 +67,10 @@ Configuration SPFarm
         Node $SPMachines
         {
 
-            <#
             LocalConfigurationManager
             {
                 RebootNodeIfNeeded = $true;
             }
-            #>
 
             xHostsFile WAHostEntry
             {
