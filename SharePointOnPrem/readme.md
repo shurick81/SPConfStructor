@@ -2,7 +2,7 @@
 
 Shortest path to the stuff:
 
-1. Make sure you have AzureRM.Computing PowerShell module 3.2.2 or higher on your machine.
+1. Make sure you have AzureRM.Compute PowerShell module 3.3.1 or higher on your machine.
 2. Copy all the files on your machine.
 3. Run "azureDeploy.ps1".
 4. Authenticate.
