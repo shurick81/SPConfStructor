@@ -44,6 +44,7 @@ Configuration SPFarm
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DSCResource -ModuleName xNetworking
     Import-DSCResource -ModuleName xSQLServer -Name xSQLServerAlias
+    Import-DscResource -ModuleName xCredSSP
     Import-DSCResource -ModuleName SharePointDSC
 
     $SPMachines = $configParameters.Machines | ? { ( $_.Roles -contains "SharePoint" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
@@ -94,6 +95,19 @@ Configuration SPFarm
                 ServerName  = $DBServer
             }
 
+            xCredSSP CredSSPServer
+            {
+                Ensure  = "Present"
+                Role    = "Server"
+            }
+    
+            xCredSSP CredSSPClient
+            {
+                Ensure = "Present";
+                Role = "Client";
+                DelegateComputers = "*.$DomainName"
+            }
+    
             $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
             $isWFE = ( $machineParameters.Roles -contains "WFE" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
             $isApplication = ( $machineParameters.Roles -contains "Application" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
@@ -112,7 +126,7 @@ Configuration SPFarm
                 if ( !$isWFE -and !$isApplication -and !$isDCNode -and ( $isSearchQuery -or $isSearchCrawl ) ) { $serverRole = "Search" }
                 if ( !$isWFE -and $isApplication -and !$isDCNode -and ( $isSearchQuery -or $isSearchCrawl ) ) { $serverRole = "ApplicationWithSearch" }
                 if ( !$serverRole ) { $serverRole = "SingleServerFarm" }
-                
+
                 SPFarm Farm
                 {
                     Ensure                    = "Present"
@@ -125,7 +139,7 @@ Configuration SPFarm
                     CentralAdministrationPort = 50555
                     ServerRole                = "SingleServerFarm"
                     PsDscRunAsCredential      = $SPInstallAccountCredential
-                    DependsOn                 = @( "[xSQLServerAlias]SPDBAlias" )
+                    DependsOn                 = @( "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[xSQLServerAlias]SPDBAlias" )
                 }
 
             }
@@ -142,7 +156,7 @@ Configuration SPFarm
                     RunCentralAdmin           = $isWFE
                     CentralAdministrationPort = 50555
                     PsDscRunAsCredential      = $SPInstallAccountCredential
-                    DependsOn                 = @( <#"[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient",#> "[xSQLServerAlias]SPDBAlias" )
+                    DependsOn                 = @( "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[xSQLServerAlias]SPDBAlias" )
                 }
 
                 if ( $isWFE -or $isApplication -or $isSearchCrawl )
@@ -440,7 +454,8 @@ Configuration SPFarm
                 DependsOn               = "[SPManagedAccount]SharePointServicesPoolAccount"
             }
 
-            SPAccessServiceApp AccessServices
+            <# temporary removing
+            SPAccessServiceApp AccessServiceApp
             {
                 Name                    = "Access Services"
                 ApplicationPool         = "SharePoint Services App Pool";
@@ -448,6 +463,7 @@ Configuration SPFarm
                 PsDscRunAsCredential    = $SPInstallAccountCredential
                 DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
             }
+            #>
 
             SPBCSServiceApp BCSServiceApp
             {
@@ -561,6 +577,7 @@ Configuration SPFarm
                 DependsOn               = @("[SPServiceAppPool]SharePointServicesAppPool","[SPSite]MySite")
             }
 
+            <# temporary removing
             SPVisioServiceApp VisioServices
             {
                 Name                    = "Visio Graphics Service"
@@ -568,6 +585,7 @@ Configuration SPFarm
                 PsDscRunAsCredential    = $SPInstallAccountCredential
                 DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
             }
+            #>
 
             SPWordAutomationServiceApp WordAutomation
             { 

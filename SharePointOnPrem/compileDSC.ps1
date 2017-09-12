@@ -178,10 +178,10 @@ $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
     $configurationData = @{ AllNodes = @(
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     ) }
-    . .\DSCDomainInstall.ps1
-    DomainInstall -ConfigurationData $configurationData
-    . .\DSCSPDomain.ps1
-    SPDomain -ConfigurationData $configurationData -ConfigParameters $configParameters `
+    . .\DSC\DomainInstall.ps1
+    DomainInstall -OutputPath .\dscoutput\DomainInstall -ConfigurationData $configurationData
+    . .\DSC\SPDomain.ps1
+    SPDomain -OutputPath .\dscoutput\SPDomain -ConfigurationData $configurationData -ConfigParameters $configParameters `
         -ShortDomainAdminCredential $ShortDomainAdminCredential `
         -DomainSafeModeAdministratorPasswordCredential $DomainSafeModeAdministratorPasswordCredential `
         -SPInstallAccountCredential $SPInstallAccountCredential `
@@ -201,10 +201,10 @@ $configParameters.Machines | ? { $_.Roles -contains "SQL" } | % {
     $configurationData = @{ AllNodes = @(
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     ) }
-    . .\DSCSQLLoadingInstallationFiles.ps1
-    SQLLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary -MediaShareCredential $MediaShareCredential
-    . .\DSCSQLInstall.ps1
-    SQLInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -SQLPassCredential $configParameters.SQLPassCredential -LocalAdminCredential $LocalAdminCredential -MachineName $_.Name
+    . .\DSC\SQLLoadingInstallationFiles.ps1
+    SQLLoadingInstallationFiles -OutputPath .\dscoutput\SQLLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary -MediaShareCredential $MediaShareCredential
+    . .\DSC\SQLInstall.ps1
+    SQLInstall -OutputPath .\dscoutput\SQLInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -SQLPassCredential $configParameters.SQLPassCredential -LocalAdminCredential $LocalAdminCredential -MachineName $_.Name
 }
 
 #compiling SP machine preparation config
@@ -213,12 +213,12 @@ $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % {
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     ) }
     $storageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
-    . .\DSCSP2013Prepare.ps1
-    SP2013Prepare -ConfigurationData $configurationData -ConfigParameters $configParameters
-    . .\DSCSPLoadingInstallationFiles.ps1
-    SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary -AzureStorageAccountKey $storageAccountKey.Value -MediaShareCredential $MediaShareCredential
-    . .\DSCSPInstall.ps1
-    SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary;
+    . .\DSC\SP2013Prepare.ps1
+    SP2013Prepare -OutputPath .\dscoutput\SP2013Prepare -ConfigurationData $configurationData -ConfigParameters $configParameters
+    . .\DSC\SPLoadingInstallationFiles.ps1
+    SPLoadingInstallationFiles -OutputPath .\dscoutput\SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary -AzureStorageAccountKey $storageAccountKey.Value -MediaShareCredential $MediaShareCredential
+    . .\DSC\SPInstall.ps1
+    SPInstall -OutputPath .\dscoutput\SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary;
 }
 
 #compiling configuration machines provisioning
@@ -226,8 +226,8 @@ $configParameters.Machines | ? { $_.Roles -contains "Configuration" } | % {
     $configurationData = @{ AllNodes = @(
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     ) }
-    . .\DSCSPConfigurationTools.ps1
-    SPConfigurationTools -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary
+    . .\DSC\SPConfigurationTools.ps1
+    SPConfigurationTools -OutputPath .\dscoutput\SPConfigurationTools -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary
 }
 
 #compiling domain machine adding
@@ -243,8 +243,8 @@ $configParameters.Machines | ? { !( $_.Roles -contains "AD" ) } | % {
     $configurationData = @{ AllNodes = @(
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     ) }
-    . .\DSCDomainClient.ps1
-    DomainClient -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -DomainAdminCredential $DomainAdminCredential
+    . .\DSC\DomainClient.ps1
+    DomainClient -OutputPath .\dscoutput\DomainClient -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -DomainAdminCredential $DomainAdminCredential
 }
 
 #compiling SPFarm configuration
@@ -255,8 +255,8 @@ if ( $SPMachines )
     $SPMachines | ? { $_.Roles -contains "SharePoint" } | % {
         $configurationData.AllNodes += @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     }
-    . .\DSCSPFarm.ps1
-    SPFarm -ConfigurationData $configurationData -ConfigParameters $configParameters `
+    . .\DSC\SPFarm.ps1
+    SPFarm -OutputPath .\dscoutput\SPFarm -ConfigurationData $configurationData -ConfigParameters $configParameters `
         -SPPassphraseCredential $SPPassphraseCredential `
         -SPInstallAccountCredential $SPInstallAccountCredential `
         -SPFarmAccountCredential $SPFarmAccountCredential `

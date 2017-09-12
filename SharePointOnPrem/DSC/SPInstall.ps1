@@ -10,7 +10,9 @@ Configuration SPInstall
     Import-DscResource -ModuleName xWebAdministration
     Import-DscResource -ModuleName xPendingReboot
     #preinstalling
+    Import-DSCResource -ModuleName xNetworking
     Import-DSCResource -ModuleName xSQLServer -Name xSQLServerAlias
+    Import-DscResource -ModuleName xCredSSP
     Import-DSCResource -ModuleName SharePointDSC
 
     $SPInstallationMediaPath = $configParameters.SPInstallationMediaPath
