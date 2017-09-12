@@ -374,7 +374,7 @@ function PrepareMachine ( $machineParameters ) {
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 40 -CurrentOperation "Downloading SP media on $machineName" -ParentId 1;
                 $containerName = "psscripts";
                 $fileName = "AutoSPSourceBuilder\AutoSPSourceBuilder.ps1"
-                Set-AzureRmCurrentStorageAccount -StorageAccountName $azureParameters.ImageStorageAccount -ResourceGroupName $azureParameters.ImageResourceGroupName;
+                Set-AzureRmCurrentStorageAccount -StorageAccountName $azureParameters.ImageStorageAccount -ResourceGroupName $azureParameters.ImageResourceGroupName | Out-Null;
                 $existingStorageContainer = $null;
                 $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
                 if ( !$existingStorageContainer )
@@ -488,7 +488,7 @@ $configParameters.Machines | % {
                 Write-Host "$(Get-Date) Waiting until $templateMachineName shuts down"
                 Do {
                     Sleep 3;
-                    $vmState = ( Get-AzureRmVM -Status | ? { $_.Name -eq $templateMachineName } ).PowerState;
+                    $vmState = ( Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Status ).PowerState;
                 } while ( $vmState -ne "VM stopped" )
                 Write-Host "$(Get-Date) Deallocating $templateMachineName"
                 Stop-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null
