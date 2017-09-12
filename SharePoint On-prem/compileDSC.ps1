@@ -153,6 +153,15 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
     }
     $configParameters.SPPassphraseCredential = $SPPassphraseCredential;
 
+    $MediaShareUserName = $azureParameters.MediaShareUserName;
+    if ( $MediaShareUserName )
+    {
+        $securedPassword = ConvertTo-SecureString $azureParameters.MediaSharePassword -AsPlainText -Force
+        $MediaShareCredential = New-Object System.Management.Automation.PSCredential( "$MediaShareUserName", $securedPassword );
+    } else {
+        $MediaShareCredential = Get-Credential -Message "Credential for media shared folder";
+    }
+
 # credentials are ready
 $subscription = $null;
 $subscription = Get-AzureRmSubscription;
@@ -193,7 +202,7 @@ $configParameters.Machines | ? { $_.Roles -contains "SQL" } | % {
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     ) }
     . .\DSCSQLLoadingInstallationFiles.ps1
-    SQLLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary
+    SQLLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary -MediaShareCredential $MediaShareCredential
     . .\DSCSQLInstall.ps1
     SQLInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -SQLPassCredential $configParameters.SQLPassCredential -LocalAdminCredential $LocalAdminCredential -MachineName $_.Name
 }
@@ -207,7 +216,7 @@ $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % {
     . .\DSCSP2013Prepare.ps1
     SP2013Prepare -ConfigurationData $configurationData -ConfigParameters $configParameters
     . .\DSCSPLoadingInstallationFiles.ps1
-    SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary -AzureStorageAccountKey $storageAccountKey.Value
+    SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary -AzureStorageAccountKey $storageAccountKey.Value -MediaShareCredential $MediaShareCredential
     . .\DSCSPInstall.ps1
     SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary;
 }

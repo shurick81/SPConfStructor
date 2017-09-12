@@ -3,7 +3,11 @@ Configuration SQLLoadingInstallationFiles
     param(
         $configParameters,
         $systemParameters,
-        $commonDictionary
+        $commonDictionary,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullorEmpty()]
+        [PSCredential]
+        $MediaShareCredential
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -18,26 +22,28 @@ Configuration SQLLoadingInstallationFiles
     Node $AllNodes.NodeName
     {
 
-        if ( $systemParameters.SQLImageSource -eq "Public" )
+        if ( $systemParameters.SQLMediaSource -eq "Public" )
         {
 
             $sqlImageUrl -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
             $SQLImageFileName = $matches[0]
             $SQLImageDestinationPath = "$SQLImageLocation\$SQLImageFileName"
+            
             xRemoteFile SQLServerImageFile
             {
                 Uri             = $SQLImageUrl
                 DestinationPath = $SQLImageDestinationPath
             }
+
         }
-        if ( $systemParameters.SQLImageUnpack )
+        if ( ( $systemParameters.SQLMediaSource -eq "Public" ) -and ( $systemParameters.SQLImageUnpack ) )
         {
 
             $sqlImageUrl -match '[^/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))' | Out-Null
             $SQLImageFileName = $matches[0]
             $SQLImagePath = "$SQLImageLocation\$SQLImageFileName"
 
-            if ( $systemParameters.SQLImageSource -eq "Public" )
+            if ( $systemParameters.SQLMediaSource -eq "Public" )
             {
 
                 xMountImage SQLServerImageMount
@@ -74,7 +80,19 @@ Configuration SQLLoadingInstallationFiles
                 DestinationPath = $configParameters.SQLInstallationMediaPath
                 DependsOn       = "[xWaitForVolume]WaitForSQLServerImageMount"
             }
-            
+
+        }
+        if ( $systemParameters.SQLMediaSource -eq "PreparedShare" )
+        {
+
+            File Test {
+                SourcePath = $systemParameters.SQLPreparedShare
+                DestinationPath = $configParameters.SQLInstallationMediaPath
+                Recurse = $true
+                Type = "Directory"
+                Credential = $MediaShareCredential
+            }
+
         }
     }
 }

@@ -1,7 +1,7 @@
 @{
-    SPVersion = "2013"
+    SPVersion = "2016"
     #Refer to https://github.com/brianlala/AutoSPSourceBuilder/blob/master/AutoSPSourceBuilder.xml for selecting a correct CU name
-    SPCumulativeUpdate = "June 2017" #must not be empty
+    SPCumulativeUpdate = "August 2017" #must not be empty
     SPLanguagePacks = "ru-ru,sv-se,nb-no" #must not be empty
     DomainName = "sp.local"
     #machine name restriction: 15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
@@ -10,49 +10,18 @@
     # WinVersion options: "2016", "2012R2", "2012"
     #ProvisioninngType options: Image, Url, Manual
     Machines = @(
-        <#
         @{
-            Name = "SP2013Ent01dc01"
-            Roles = "AD"
-            Memory = 1.5
-            DiskSize = 30
-            WinVersion = "2016"
-            Image = "Win2016ADv003"
-        }
-        #>
-        <#
-        @{
-            Name = "SP2013Ent01cl01"
-            Roles = @()
-            Memory = 1.5
-            DiskSize = 30
+            Name = "SP2016Ent01sp01"
+            Roles = "AD", "SQL", "SharePoint", "SingleServerFarm", "Configuration"
+            Memory = 14
+            DiskSize = 120
             WinVersion = "2016"
             Image = ""
         }
-        #>
-        <#
-        @{
-            Name = "SP2013Ent01dc02"
-            Roles = "AD"
-            Memory = 1.5
-            DiskSize = 30
-            WinVersion = "2016"
-            Image = "Win2016ADv002"
-        }
-        #>
-        @{
-            Name = "SP2013Ent01sp01"
-            Roles = "SharePoint", "SingleServerFarm", "Configuration"
-            Memory = 14
-            DiskSize = 120
-            WinVersion = "2012R2"
-            Image = "Win2012R2SP2013SP1CU201706EnRuSwNoV001"
-        }
     )
-    SPDatabaseServer = "SP2013Ent01sp01"
-    SPSiteCollectionHostName = "SP2013Ent01sp01.westeurope.cloudapp.azure.com"
+    SPSiteCollectionHostName = "SP2016Ent01sp01.westeurope.cloudapp.azure.com"
     SearchIndexDirectory = "c:\SPSearchIndex"
-    SPProductKey = "NQTMW-K63MQ-39G6H-B2CH9-FRDWJ"
+    SPProductKey = ""
     DomainAdminUserName = "dauser1"
     DomainAdminPassword = "123$%^qweRTY"
     DomainSafeModeAdministratorPassword = "123$%^qweRTY"
@@ -81,6 +50,7 @@
     SPPassphrase = "123$%^qweRTY"
     SQLPass = "P@ssw0rd"
     SPDatabaseAlias = "SPDB"
+    SPDatabaseServer = ""
     SQLInstallationMediaPath = "C:\Install\SQLMedia"
     SPInstallationMediaPath = "C:\Install\SPInstall"
     SSMSInstallationFolderPath = "C:\Install\SSMS"

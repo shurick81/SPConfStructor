@@ -15,18 +15,17 @@ Configuration SQLInstall
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DSCResource -ModuleName xNetworking
+    Import-DsCResource -Module xWindowsUpdate -Name xHotfix
     Import-DscResource -ModuleName xPendingReboot
     Import-DSCResource -ModuleName xSQLServer -Name xSQLServerSetup
 
     Node $AllNodes.NodeName
     {
         # Is it really needed when running via Azure Automation? or only manually
-        <#
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true;
         }
-        #>
         
         xFireWall SQLFirewallRule
         {
@@ -41,12 +40,27 @@ Configuration SQLInstall
             Protocol    = "TCP"
             Description = "Firewall rule to allow SQL communication"
         }
-                
+        
+        xHotfix RemoveKB2894856
+        {
+            Ensure  = "Absent"
+            Path    = "C:/anyfolder/KB2894856.msu"
+            Id      = "KB2894856"
+        }
+
+        xPendingReboot RebootBeforeNetFrameworkInstalling
+        { 
+            Name        = 'BeforeNetInstalling'
+            DependsOn   = "[xHotfix]RemoveKB2894856"
+        }
+
+
         # needed at least for Windows 2012 R2 and 2016
         WindowsFeature NetFramework35Core
         {
-            Name = "NET-Framework-Core"
-            Ensure = "Present"
+            Name                    = "NET-Framework-Core"
+            IncludeAllSubFeature    = $true
+            DependsOn               = "[xHotfix]RemoveKB2894856"
         }
 
         xPendingReboot RebootBeforeSQLInstalling
@@ -65,7 +79,7 @@ Configuration SQLInstall
             SecurityMode        = 'SQL'
             SQLSysAdminAccounts = "BUILTIN\Administrators"
             SAPwd               = $SQLPassCredential
-            DependsOn           = "[xPendingReboot]RebootBeforeSQLInstalling"
+            DependsOn           = "[WindowsFeature]NetFramework35Core"
         }
 
         <#

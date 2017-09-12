@@ -1,1 +1,1 @@
-# SharePoint-Infrastructure
+The easiest way to start managing SharePoint Configuration via DSC and to automate SharePoint Development Infrastructure preparation.
