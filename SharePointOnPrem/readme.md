@@ -8,3 +8,6 @@ Shortest path to the stuff:
 4. Authenticate.
 5. Wait until the script finishes.
 6. Connect via RDP and use your new environment.
+
+user name: sp\dauser1
+password: 123$%^qweRTY

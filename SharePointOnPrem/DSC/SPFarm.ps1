@@ -93,6 +93,7 @@ Configuration SPFarm
                 ServerName  = $DBServer
             }
 
+            <#
             xCredSSP CredSSPServer
             {
                 Ensure  = "Present"
@@ -105,6 +106,7 @@ Configuration SPFarm
                 Role = "Client";
                 DelegateComputers = "*.$DomainName"
             }
+            #>
     
             $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
             $isWFE = ( $machineParameters.Roles -contains "WFE" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
@@ -135,14 +137,15 @@ Configuration SPFarm
                     FarmAccount               = $SPFarmAccountCredential
                     RunCentralAdmin           = $isWFE
                     CentralAdministrationPort = 50555
-                    ServerRole                = "SingleServerFarm"
+                    ServerRole                = $serverRole
                     PsDscRunAsCredential      = $SPInstallAccountCredential
-                    DependsOn                 = @( "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[xSQLServerAlias]SPDBAlias" )
+                    DependsOn                 = @( <#"[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient",#> "[xSQLServerAlias]SPDBAlias" )
                 }
 
             }
             if ( $SPVersion -eq "2013" )
             {
+                
                 SPFarm Farm
                 {
                     Ensure                    = "Present"
@@ -154,7 +157,7 @@ Configuration SPFarm
                     RunCentralAdmin           = $isWFE
                     CentralAdministrationPort = 50555
                     PsDscRunAsCredential      = $SPInstallAccountCredential
-                    DependsOn                 = @( "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[xSQLServerAlias]SPDBAlias" )
+                    DependsOn                 = @( <#"[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient",#> "[xSQLServerAlias]SPDBAlias" )
                 }
 
                 if ( $isWFE -or $isApplication -or $isSearchCrawl )
@@ -405,7 +408,7 @@ Configuration SPFarm
 
             SPWebAppPolicy RootWebAppPolicy
             {
-                WebAppUrl               = "RootWebApp"
+                WebAppUrl               = "http://$webAppHostName"
                 MembersToInclude        = @(
                     MSFT_SPWebPolicyPermissions {
                         Username        = $SPInstallAccountCredential.UserName
@@ -663,7 +666,7 @@ Configuration SPFarm
                 $topologyDependsOn = @( "[SPSearchServiceApp]SearchServiceApp" )
             }
 
-            SPSearchTopology LocalSearchTopology
+            SPSearchTopology SearchTopology
             {
                 ServiceAppName          = "Search Service Application"
                 Admin                   = $SearchQueryMachines

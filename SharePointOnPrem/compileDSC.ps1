@@ -230,6 +230,15 @@ $configParameters.Machines | ? { $_.Roles -contains "Configuration" } | % {
     SPConfigurationTools -OutputPath .\dscoutput\SPConfigurationTools -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary
 }
 
+#compiling coding machines provisioning
+$configParameters.Machines | ? { $_.Roles -contains "Code" } | % {
+    $configurationData = @{ AllNodes = @(
+        @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
+    ) }
+    . .\DSC\SPCodeTools.ps1
+    SPCodeTools -OutputPath .\dscoutput\SPCodeTools -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary
+}
+
 #compiling domain machine adding
 $firstAdVMName = $null;
 $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {

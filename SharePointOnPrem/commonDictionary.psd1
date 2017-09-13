@@ -27,4 +27,15 @@
             ProductId = "6ce0f2ad-2643-496c-9b48-d0587d3e10a9"
         }
     }
+    "VSVersions" = @{
+        "Community" = @{
+            URL = "https://download.visualstudio.microsoft.com/download/pr/11346828/045b56eb413191d03850ecc425172a7d/vs_Community.exe"
+        }
+        "Professional" = @{
+            URL = "https://download.visualstudio.microsoft.com/download/pr/11346817/14dd70405e8244481b35017b9a562edd/vs_Professional.exe"
+        }
+        "Enterprise" = @{
+            URL = "https://download.visualstudio.microsoft.com/download/pr/11346816/52257ee3e96d6e07313e41ad155b155a/vs_Enterprise.exe"
+        }
+    }
 }

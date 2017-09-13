@@ -175,8 +175,6 @@ $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
 
 $resourceGroupName = $azureParameters.ResourceGroupName;
 $resourceGroupLocation = $azureParameters.ResourceGroupLocation;
-$storageAccountNameLong = ( $resourceGroupName + "StdStor" );
-$storageAccountName = $storageAccountNameLong.Substring( 0, [System.Math]::Min( 24, $storageAccountNameLong.Length ) ).ToLower();
 $vnetName = ( $resourceGroupName + "VNet");
 
 $subscription = $null;
@@ -217,13 +215,17 @@ if ( $azureParameters.PrepareResourceGroup )
     }
     $subnetId = $vnet.Subnets[0].Id;
 
-    $storageAccount = Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName -Name $storageAccountName -ErrorAction Ignore;
-    if ( !$storageAccount )
+    $storageAccounts = Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName -ErrorAction Ignore;
+    if ( !$storageAccounts )
     {
+        $storageAccountNameLong = [guid]::NewGuid().Guid.Replace("-","");
+        $storageAccountName = $storageAccountNameLong.Substring( 0, [System.Math]::Min( 24, $storageAccountNameLong.Length ) ).ToLower();
         New-AzureRmStorageAccount -ResourceGroupName $resourceGroupName -Name $storageAccountName -Location $resourceGroupLocation `
             -SkuName "Standard_LRS" -Kind "Storage" | Out-Null;
-    }
+    }    
 }
+$storageAccounts = Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName
+$storageAccountName = $storageAccounts[0].StorageAccountName;
 
 function CreateMachine ( $machineParameters ) {
     $machineName = $machineParameters.Name;
@@ -411,11 +413,27 @@ function PrepareMachine ( $machineParameters ) {
                 Set-AzureRmVmDscExtension -Version 2.7 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
         }
+        if ( $machineParameters.Roles -contains "Code" )
+        {
+            if ( $azureParameters.CodeToolsInstallation )
+            {
+                Write-Progress -Activity 'Code tools installing' -PercentComplete 55 -CurrentOperation $machineName -ParentId 1;
+                $configName = "SPCodeTools"
+                $configFileName = ".\DSC\$configName.ps1";
+                Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+                Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
+                $configurationArguments = @{
+                    ConfigParameters = $configParameters
+                    CommonDictionary = $commonDictionary
+                }
+                Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            }
+        }
         if ( $machineParameters.Roles -contains "Configuration" )
         {
             if ( $azureParameters.ConfigurationToolsInstallation )
             {
-                Write-Progress -Activity 'Configuration tools installing' -PercentComplete 55 -CurrentOperation $machineName -ParentId 1;
+                Write-Progress -Activity 'Configuration tools installing' -PercentComplete 58 -CurrentOperation $machineName -ParentId 1;
                 $configName = "SPConfigurationTools"
                 $configFileName = ".\DSC\$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
