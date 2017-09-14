@@ -386,16 +386,6 @@ Configuration SPFarm
                 PsDscRunAsCredential    = $SPInstallAccountCredential
                 DependsOn               = "[SPManagedAccount]ApplicationWebPoolAccount"
             }
-
-            if ( $SPVersion -eq "20130" )
-            {
-                SPContentDatabase ContentDB
-                {
-                    Name                 = "SP_Content_01"
-                    WebAppUrl            = "http://$webAppHostName"
-                    PsDscRunAsCredential = $SPInstallAccountCredential
-                }
-            }
             
             SPCacheAccounts CacheAccounts
             {
