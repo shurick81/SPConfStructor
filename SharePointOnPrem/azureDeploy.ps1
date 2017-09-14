@@ -506,7 +506,8 @@ $configParameters.Machines | % {
                 Write-Host "$(Get-Date) Waiting until $templateMachineName shuts down"
                 Do {
                     Sleep 3;
-                    $vmState = ( Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Status ).PowerState;
+                    $vm = Get-AzureRmVM -Status | ? { ( $_.ResourceGroupName -eq $resourceGroupName ) -and ( $_.Name -eq $templateMachineName ) }
+                    $vmState = $vm.PowerState;
                 } while ( $vmState -ne "VM stopped" )
                 Write-Host "$(Get-Date) Deallocating $templateMachineName"
                 Stop-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null
