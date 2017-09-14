@@ -740,7 +740,8 @@ if ( $azureParameters.ShutDownAfterProvisioning )
         $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -VMName $_.Name;
         $networkInterfaceRef = $vm.NetworkProfile[0].NetworkInterfaces[0].id;
         $networkInterface = Get-AzureRmNetworkInterface | ? { $_.Id -eq $networkInterfaceRef }
-        Write-Host "$($_.Name) $($networkInterface.IpConfigurations[0].PrivateIpAddress)"
+        $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName | ? { $_.id -eq $networkInterface.IpConfigurations[0].PublicIpAddress.id }
+        Write-Host "$($_.Name) $($pip.IpAddress)"
     }
 }
 
