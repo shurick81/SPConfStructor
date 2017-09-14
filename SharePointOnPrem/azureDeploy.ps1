@@ -410,7 +410,7 @@ function PrepareMachine ( $machineParameters ) {
                     ConfigParameters = $configParameters
                     CommonDictionary = $commonDictionary
                 }
-                Set-AzureRmVmDscExtension -Version 2.7 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+                Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
         }
         if ( $machineParameters.Roles -contains "Code" )
