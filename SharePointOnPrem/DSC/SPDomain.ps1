@@ -64,35 +64,11 @@ Configuration SPDomain
             RebootNodeIfNeeded = $true;
         }
 
-        <#
-        WindowsFeatureSet DomainFeatures
-        {
-            Name                    = @( "DNS", "RSAT-DNS-Server", "AD-Domain-Services", "RSAT-ADDS" )
-            Ensure                  = 'Present'
-            IncludeAllSubFeature    = $true
-        } 
-
-        xPendingReboot RebootAfterFeaturesInstalling
-        { 
-            Name        = 'AfterFeaturesInstalling'
-            DependsOn   = @( "[WindowsFeatureSet]DomainFeatures" )
-        }
-
-        xRemoteDesktopAdmin DCRDPSettings
-        {
-           Ensure               = 'Present'
-           UserAuthentication   = 'NonSecure'
-        }
-        #>
-
         xADDomain ADDomain
         {
             DomainName                      = $configParameters.DomainName
             DomainAdministratorCredential   = $ShortDomainAdminCredential
             SafemodeAdministratorPassword   = $DomainSafeModeAdministratorPasswordCredential
-            <#
-            DependsOn                       = @( "[xRemoteDesktopAdmin]DCRDPSettings" )
-            #>
         }
 
         xWaitForADDomain WaitForDomain
@@ -187,33 +163,46 @@ Configuration SPDomain
         xADGroup SPAdminGroup
         {
             GroupName           = $configParameters.SPAdminGroupName
-            Ensure              = "Present"
             MembersToInclude    = $SPInstallAccountCredential.GetNetworkCredential().UserName
             DependsOn           = "[xADUser]SPInstallAccountUser"
         }
 
+        xADGroup DomainDBAdminGroup
+        {
+            GroupName           = $configParameters.SQLAdminGroupName
+            Members             = $SPInstallAccountCredential.GetNetworkCredential().UserName
+            DependsOn           = "[xADUser]SPInstallAccountUser"
+        }
+
+        xADGroup DomainAdminGroup
+        {
+            GroupName           = "Domain Admins"
+            MembersToInclude    = $SPInstallAccountCredential.GetNetworkCredential().UserName
+            DependsOn           = "[xADUser]SPInstallAccountUser"
+        }
+
+        <#
+        $domainAdminsMembersToInclude = @()
         if ( ( $configParameters.Machines | ? { $_.Name -eq $machineName } ).Roles -contains "SQL" )
         {
-
-            xADGroup DomainDBAdminGroup
-            {
-                GroupName           = "DBAdmins"
-                Members             = $configParameters.SPAdminGroupName
-                DependsOn           = "[xADGroup]SPAdminGroup"
-            }
-
+            $domainAdminsMembersToInclude += $configParameters.SQLAdminGroupName
         }
         if ( ( $configParameters.Machines | ? { $_.Name -eq $machineName } ).Roles -contains "SharePoint" )
+        {
+            $domainAdminsMembersToInclude += $configParameters.SPAdminGroupName
+        }
+        if ( $domainAdminsMembersToInclude.Count -gt 0 )
         {
        
             xADGroup DomainAdminGroup
             {
                 GroupName           = "Domain Admins"
-                MembersToInclude    = $configParameters.SPAdminGroupName
-                DependsOn           = "[xADGroup]SPAdminGroup"
+                MembersToInclude    = $domainAdminsMembersToInclude
+                DependsOn           = @( "[xADGroup]SPAdminGroup", "[xADGroup]DomainDBAdminGroup" )
             }
 
         }
+        #>
 
         xADGroup SPMemberGroup
         {

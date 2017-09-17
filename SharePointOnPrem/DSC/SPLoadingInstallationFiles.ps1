@@ -4,7 +4,9 @@ Configuration SPLoadingInstallationFiles
         $configParameters,
         $systemParameters,
         $commonDictionary,
-        $azureStorageAccountKey,
+        $imageAzureStorageAccountKey,
+        $scriptAzureStorageAccountKey,
+        $scriptAccountName,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullorEmpty()]
         [PSCredential]
@@ -48,7 +50,7 @@ Configuration SPLoadingInstallationFiles
                 Path                    = $systemParameters.SPImageLocation
                 StorageAccountName      = $systemParameters.ImageStorageAccount
                 StorageAccountContainer = $systemParameters.SPImageAzureContainerName
-                StorageAccountKey       = $azureStorageAccountKey
+                StorageAccountKey       = $imageAzureStorageAccountKey
             }
 
             $mountDependsOn = @( "[cAzureStorage]SPServerImageFile" )
@@ -88,9 +90,9 @@ Configuration SPLoadingInstallationFiles
 
             cAzureStorage AutoSPSourceBuilderPs1File {
                 Path                    = "C:\temp\AutoSPSourceBuilder"
-                StorageAccountName      = $systemParameters.ImageStorageAccount
+                StorageAccountName      = $scriptAccountName
                 StorageAccountContainer = "psscripts"
-                StorageAccountKey       = $azureStorageAccountKey
+                StorageAccountKey       = $scriptAzureStorageAccountKey
             }
 
             xRemoteFile AutoSPSourceBuilderXml

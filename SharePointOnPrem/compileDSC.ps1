@@ -173,6 +173,12 @@ if ( !$subscription )
     Login-AzureRmAccount | Out-Null;
 }
 
+$resourceGroupName = $azureParameters.ResourceGroupName;
+$storageAccounts = Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName
+$storageAccountName = $storageAccounts[0].StorageAccountName;
+$imageStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
+$scriptStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
+
 #compiling domain
 $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
     $configurationData = @{ AllNodes = @(
@@ -212,11 +218,10 @@ $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % {
     $configurationData = @{ AllNodes = @(
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     ) }
-    $storageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
     . .\DSC\SP2013Prepare.ps1
     SP2013Prepare -OutputPath .\dscoutput\SP2013Prepare -ConfigurationData $configurationData -ConfigParameters $configParameters
     . .\DSC\SPLoadingInstallationFiles.ps1
-    SPLoadingInstallationFiles -OutputPath .\dscoutput\SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary -AzureStorageAccountKey $storageAccountKey.Value -MediaShareCredential $MediaShareCredential
+    SPLoadingInstallationFiles -OutputPath .\dscoutput\SPLoadingInstallationFiles -ConfigurationData $configurationData -ConfigParameters $configParameters -SystemParameters $azureParameters -CommonDictionary $commonDictionary -ImageAzureStorageAccountKey $imageStorageAccountKey.Value -ScriptAzureStorageAccountKey $scriptStorageAccountKey.Value -ScriptAccountName $storageAccountName -MediaShareCredential $MediaShareCredential
     . .\DSC\SPInstall.ps1
     SPInstall -OutputPath .\dscoutput\SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary;
 }

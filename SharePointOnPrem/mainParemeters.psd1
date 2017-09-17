@@ -1,7 +1,7 @@
 @{
     SPVersion = "2016"
     #Refer to https://github.com/brianlala/AutoSPSourceBuilder/blob/master/AutoSPSourceBuilder.xml for selecting a correct CU name
-    SPCumulativeUpdate = "August 2017" #must not be empty
+    SPCumulativeUpdate = "September 2017" #must not be empty
     SPLanguagePacks = "ru-ru,sv-se,nb-no" #must not be empty
     DomainName = "sp.local"
     #machine name restriction: 15 characters, ^[a-z][a-z0-9-]{1,61}[a-z0-9]$
@@ -11,12 +11,36 @@
     #ProvisioninngType options: Image, Url, Manual
     Machines = @(
         @{
-            Name = "SP2016Ent01sp01"
-            Roles = "AD", "SQL", "SharePoint", "SingleServerFarm", "Configuration"
+            Name = "SP201601ad01"
+            Roles = "AD"
+            Memory = 1.5
+            DiskSize = 30
+            WinVersion = "2016"
+            Image = "Win2016ADV001"
+        }
+        @{
+            Name = "SP201601sq01"
+            Roles = "SQL"
             Memory = 14
             DiskSize = 120
             WinVersion = "2016"
-            Image = ""
+            Image = "Win2016SQL2016"
+        }
+        @{
+            Name = "SP201601sp01"
+            Roles = "SharePoint", "WFE", "DistributedCache", "SearchQuery", "Code", "Configuration"
+            Memory = 14
+            DiskSize = 120
+            WinVersion = "2016"
+            Image = "Win2016SP2016CU201709EnRuSwNoCodeConfV001"
+        }
+        @{
+            Name = "SP201601sp02"
+            Roles = "SharePoint", "Application", "SearchCrawl"
+            Memory = 14
+            DiskSize = 120
+            WinVersion = "2016"
+            Image = "Win2016SP2016CU201709EnRuSwNoV001"
         }
     )
     SPSiteCollectionHostName = "SP2016Ent01sp01.westeurope.cloudapp.azure.com"
@@ -46,7 +70,7 @@
     SPAdminGroupName = "SP Admins"
     SPMemberGroupName = "SP Members"
     SPVisitorGroupName = "SP Visitors"
-    SQLAdminGroupName = "SQL Admins" #not in use so far
+    SQLAdminGroupName = "SQL Admins"
     SPPassphrase = "123$%^qweRTY"
     SQLPass = "P@ssw0rd"
     SPDatabaseAlias = "SPDB"
@@ -56,6 +80,7 @@
     SSMSInstallationFolderPath = "C:\Install\SSMS"
     SSMSVersion = "17.2"
     SPLogFolder = "C:\SPLogs"
+    VSVersion = "Professional"
 
     SPLanguage = "English" #don't use
     SPServicePack = "SP1" #don't use
