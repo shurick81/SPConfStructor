@@ -62,11 +62,18 @@ Configuration SPFarm
         $configParameters.Machines | ? { $_.Roles -contains "SQL" } | % { if ( !$DBServer ) { $DBServer = $_.Name } }
     }
     
-    if ( !$GranularApplying -or !$SearchTopologyGranule )
+    Node $AllNodes.NodeName
     {
-        Node $SPMachines
+        $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
+        $isWFE = ( $machineParameters.Roles -contains "WFE" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
+        $isApplication = ( $machineParameters.Roles -contains "Application" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
+        $isDCNode = ( $machineParameters.Roles -contains "DistributedCache" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
+        $isSearchQuery = ( $machineParameters.Roles -contains "SearchQuery" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
+        $isSearchCrawl = ( $machineParameters.Roles -contains "SearchCrawl" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
+        
+        if ( !$GranularApplying -or !$SearchTopologyGranule )
         {
-
+        
             LocalConfigurationManager
             {
                 RebootNodeIfNeeded = $true;
@@ -108,13 +115,6 @@ Configuration SPFarm
             }
             #>
     
-            $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
-            $isWFE = ( $machineParameters.Roles -contains "WFE" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
-            $isApplication = ( $machineParameters.Roles -contains "Application" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
-            $isDCNode = ( $machineParameters.Roles -contains "DistributedCache" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
-            $isSearchQuery = ( $machineParameters.Roles -contains "SearchQuery" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
-            $isSearchCrawl = ( $machineParameters.Roles -contains "SearchCrawl" ) -or ( $machineParameters.Roles -contains "SingleServerFarm" )
-            
             if ( $SPVersion -eq "2016" )
             {
                 # possible serverroles: Application, ApplicationWithSearch, Custom, DistributedCache, Search, SingleServer, SingleServerFarm, WebFrontEnd, WebFrontEndWithDistributedCache
@@ -610,10 +610,7 @@ Configuration SPFarm
             }
 
         }
-    }
-    if ( !$GranularApplying -or $SearchTopologyGranule )
-    {
-        Node $SearchQueryMachines
+        if ( !$GranularApplying -or $SearchTopologyGranule )
         {
 
             SPManagedAccount SharePointSearchServicePoolAccount
@@ -621,7 +618,6 @@ Configuration SPFarm
                 AccountName             = $SPSearchServiceAccountCredential.UserName
                 Account                 = $SPSearchServiceAccountCredential
                 PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPFarm]Farm"
             }
 
             SPServiceAppPool SharePointSearchServiceAppPool

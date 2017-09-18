@@ -614,7 +614,13 @@ if ( $azureParameters.JoinDomain )
             SystemParameters = $azureParameters
             DomainAdminCredential = $DomainAdminCredential
         }
-        Set-AzureRmVmDscExtension -Version 2.7 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+        $extensionSetting = $null;
+        $iterationCount = 0;
+        Do {
+            Write-Host "$(Get-Date) Iteration $iterationCount"
+            $extensionSetting = Set-AzureRmVmDscExtension -Version 2.7 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Ignore;
+            $iterationCount++;
+        } while ( !$extensionSetting -or !$extensionSetting.IsSuccessStatusCode )
     }
 }
 
@@ -698,10 +704,9 @@ if ( $azureParameters.ConfigureSharePoint )
             $configName = "SPFarm";
             $configFileName = ".\DSC\$configName.ps1";
             Write-Host "$(Get-Date) Deploying $configName extension on $machineName (Search granule)"
-            if ( $configParameters.SPVersion -eq "2013" ) { $configFileName = ".\DSC\SP2013.ps1" } else { $configFileName = ".\DSC\SP2016.ps1" }
             Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
             Remove-Item $tempConfigDataFilePath;
-            Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $_.Name -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
         }
     }
 }
