@@ -159,7 +159,22 @@ Configuration SPFarm
                     PsDscRunAsCredential      = $SPInstallAccountCredential
                     DependsOn                 = @( <#"[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient",#> "[xSQLServerAlias]SPDBAlias" )
                 }
+            }
+            if ( $isApplication -or $isDCNode )
+            {
 
+                SPManagedAccount SharePointServicesPoolAccount
+                {
+                    AccountName             = $SPServicesAccountCredential.UserName
+                    Account                 = $SPServicesAccountCredential
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPFarm]Farm"
+                }
+
+            }
+            if ( $SPVersion -eq "2013" )
+            {
+                #Running service instances that correspond to specific server roles
                 if ( $isWFE -or $isApplication -or $isSearchCrawl )
                 {
 
@@ -236,7 +251,6 @@ Configuration SPFarm
                         PsDscRunAsCredential    = $SPInstallAccountCredential
                         DependsOn               = @( "[SPFarm]Farm" )
                     }
-
                 }
                 if ( $isWFE )
                 {
@@ -302,14 +316,14 @@ Configuration SPFarm
                 if ( $isApplication )
                 {
 
-                    SPServiceInstance WordAutomationServices
+                    SPServiceInstance WordAutomationServiceInstance
                     {
                         Name                    = "Word Automation Services"
                         PsDscRunAsCredential    = $SPInstallAccountCredential
                         DependsOn               = @( "[SPFarm]Farm" )
                     }
 
-                    SPServiceInstance WorkflowTimerService
+                    SPServiceInstance WorkflowTimerServiceInstance
                     {
                         Name                    = "Microsoft SharePoint Foundation Workflow Timer Service"
                         PsDscRunAsCredential    = $SPInstallAccountCredential
@@ -342,6 +356,247 @@ Configuration SPFarm
                     }
 
                 }
+
+            }
+
+            if ( $isApplication )
+            {
+
+                #finalizing applying farm-wide settings: web applications, sites and service applications
+                SPDiagnosticLoggingSettings ApplyDiagnosticLogSettings
+                {
+                    LogPath                 = "$logFolder\ULS"
+                    LogSpaceInGB            = 10
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = @( "[SPFarm]Farm" )
+                }
+                                        
+                SPServiceAppPool SharePointServicesAppPool
+                {
+                    Name                    = "SharePoint Services App Pool"
+                    ServiceAccount          = $SPServicesAccountCredential.UserName
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPManagedAccount]SharePointServicesPoolAccount"
+                }
+    
+                <#
+                SPAccessServiceApp AccessServiceApp
+                {
+                    Name                    = "Access Services"
+                    ApplicationPool         = "SharePoint Services App Pool";
+                    DatabaseServer          = $configParameters.SPDatabaseAlias
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
+                }
+                #>
+    
+                SPBCSServiceApp BCSServiceApp
+                {
+                    Name                    = "Business Data Connectivity Service"
+                    ApplicationPool         = "SharePoint Services App Pool";
+                    DatabaseServer          = $configParameters.SPDatabaseAlias
+                    DatabaseName            = "SP_BCS"
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
+                }
+                
+                SPManagedMetaDataServiceApp ManagedMetadataServiceApp
+                {
+                    DatabaseName            = "SP_Metadata";
+                    ApplicationPool         = "SharePoint Services App Pool";
+                    ProxyName               = "Managed Metadata Service Application";
+                    Name                    = "Managed Metadata Service Application";
+                    Ensure                  = "Present";
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
+                }
+                
+                SPPerformancePointServiceApp PerformancePoint
+                {
+                    Name                    = "PerformancePoint Service Application"
+                    ApplicationPool         = "SharePoint Services App Pool";
+                    DatabaseName            = "SP_PerformancePoint"
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
+                }
+                
+                SPSecureStoreServiceApp SecureStoreServiceApp
+                {
+                    Name                    = "Secure Store Service"
+                    ApplicationPool         = "SharePoint Services App Pool"
+                    AuditingEnabled         = $true
+                    DatabaseName            = "SP_SecureStoreService"
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
+                }
+                
+                SPStateServiceApp StateServiceApp
+                {
+                    Name                    = "State Service"
+                    DatabaseName            = "SP_StateService"
+                    Ensure                  = "Present"
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
+                }
+    
+                SPSubscriptionSettingsServiceApp SubscriptionSettingsServiceApp
+                {
+                    Name                    = "Subscription Settings Service Application"
+                    ApplicationPool         = "SharePoint Services App Pool"
+                    DatabaseName            = "SP_SubscriptionSettings"
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
+                }
+                
+                SPAppManagementServiceApp AppManagementServiceApp
+                {
+                    Name                    = "App Management Service Application"
+                    ApplicationPool         = "SharePoint Services App Pool"
+                    DatabaseName            = "SP_AppManagement"
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPSubscriptionSettingsServiceApp]SubscriptionSettingsServiceApp"
+                }
+    
+                SPUsageApplication UsageApplication 
+                {
+                    Name                    = "Usage Service Application"
+                    DatabaseName            = "SP_Usage"
+                    UsageLogCutTime         = 5
+                    UsageLogLocation        = "$logFolder\Usage"
+                    UsageLogMaxFileSizeKB   = 1024
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
+                }
+                
+                <# temporary removing
+                SPUserProfileServiceApp UserProfileServiceApp
+                {
+                    Name                    = "User Profile Service Application"
+                    ApplicationPool         = "SharePoint Services App Pool"
+                    MySiteHostLocation      = "http://$SPSiteCollectionHostName/sites/my"
+                    ProfileDBName           = "SP_UserProfiles"
+                    SocialDBName            = "SP_Social"
+                    SyncDBName              = "SP_ProfileSync"
+                    EnableNetBIOS           = $false
+                    FarmAccount             = $SPFarmAccountCredential
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = @("[SPServiceAppPool]SharePointServicesAppPool")
+                }
+                #>
+
+                <#
+                SPVisioServiceApp VisioServices
+                {
+                    Name                    = "Visio Graphics Service"
+                    ApplicationPool         = "SharePoint Services App Pool"
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
+                }
+                #>
+    
+                SPWordAutomationServiceApp WordAutomation
+                { 
+                    Name                    = "Word Automation Service" 
+                    Ensure                  = "Present"
+                    ApplicationPool         = "SharePoint Services App Pool"
+                    DatabaseName            = "SP_WordAutomation"
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
+                }
+                
+                #Web applications and sites
+                SPManagedAccount ApplicationWebPoolAccount
+                {
+                    AccountName             = $SPWebAppPoolAccountCredential.UserName
+                    Account                 = $SPWebAppPoolAccountCredential
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = @( "[SPFarm]Farm" )
+                }
+    
+                SPWebApplication RootWebApp
+                {
+                    Name                    = "RootWebApp"
+                    ApplicationPool         = "All Web Applications"
+                    ApplicationPoolAccount  = $SPWebAppPoolAccountCredential.UserName
+                    Url                     = "http://$webAppHostName"
+                    DatabaseName            = "SP_Content_01"
+                    AuthenticationMethod    = "NTLM"
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPManagedAccount]ApplicationWebPoolAccount"
+                }
+
+                SPCacheAccounts CacheAccounts
+                {
+                    WebAppUrl               = "http://$webAppHostName"
+                    SuperUserAlias          = "$shortDomainName\$($configParameters.SPOCSuperUser)"
+                    SuperReaderAlias        = "$shortDomainName\$($configParameters.SPOCSuperReader)"
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPWebApplication]RootWebApp"
+                }
+    
+                SPWebAppPolicy RootWebAppPolicy
+                {
+                    WebAppUrl               = "http://$webAppHostName"
+                    MembersToInclude        = @(
+                        MSFT_SPWebPolicyPermissions {
+                            Username        = $SPInstallAccountCredential.UserName
+                            PermissionLevel = "Full Control"
+                            IdentityType    = "Claims"
+                        }
+                    )
+                    SetCacheAccountsPolicy = $true
+                    PsDscRunAsCredential   = $SPInstallAccountCredential
+                    DependsOn              = "[SPCacheAccounts]CacheAccounts"
+                }
+    
+                SPSite RootPathSite
+                {
+                    Url                     = "http://$webAppHostName"
+                    OwnerAlias              = $SPInstallAccountCredential.UserName
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPWebApplication]RootWebApp"
+                }
+    
+                SPSite RootHostSite
+                {
+                    Url                         = "http://$SPSiteCollectionHostName"
+                    OwnerAlias                  = $SPInstallAccountCredential.UserName
+                    Template                    = "STS#0"
+                    HostHeaderWebApplication    = "http://$webAppHostName"
+                    PsDscRunAsCredential        = $SPInstallAccountCredential
+                    DependsOn                   = "[SPSite]RootPathSite"
+                }
+
+                SPSite SearchCenterSite
+                {
+                    Url                         = "http://$SPSiteCollectionHostName/sites/searchcenter"
+                    OwnerAlias                  = $SPInstallAccountCredential.UserName
+                    Template                    = "SRCHCEN#0"
+                    HostHeaderWebApplication    = "http://$webAppHostName"
+                    PsDscRunAsCredential        = $SPInstallAccountCredential
+                    DependsOn                   = "[SPSite]RootPathSite"
+                }
+    
+                SPSite MySite
+                {
+                    Url                         = "http://$SPSiteCollectionHostName/sites/my"
+                    OwnerAlias                  = $SPInstallAccountCredential.UserName
+                    Template                    = "SPSMSITEHOST#0"
+                    HostHeaderWebApplication    = "http://$webAppHostName"
+                    PsDscRunAsCredential        = $SPInstallAccountCredential
+                    DependsOn                   = "[SPSite]RootPathSite"
+                }
+    
+            }
+            if ( $isSearchQuery )
+            {
+                
+                File IndexFolder
+                {
+                    DestinationPath = $searchIndexDirectory
+                    Type            = "Directory"
+                }
+
             }
             #this needs to be troubleshooted
             Registry LocalZone
@@ -352,251 +607,6 @@ Configuration SPFarm
                 ValueType               = "DWORD"
                 ValueData               = "1"
                 PsDscRunAsCredential    = $SPInstallAccountCredential
-            }
-
-        }
-
-        Node $ApplicationMachines
-        {
-
-            SPDiagnosticLoggingSettings ApplyDiagnosticLogSettings
-            {
-                LogPath                 = "$logFolder\ULS"
-                LogSpaceInGB            = 10
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = @( "[SPFarm]Farm" )
-            }
-
-            SPManagedAccount ApplicationWebPoolAccount
-            {
-                AccountName             = $SPWebAppPoolAccountCredential.UserName
-                Account                 = $SPWebAppPoolAccountCredential
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = @( "[SPFarm]Farm" )
-            }
-
-            SPWebApplication RootWebApp
-            {
-                Name                    = "RootWebApp"
-                ApplicationPool         = "All Web Application"
-                ApplicationPoolAccount  = $SPWebAppPoolAccountCredential.UserName
-                Url                     = "http://$webAppHostName"
-                DatabaseName            = "SP_Content_01"
-                AuthenticationMethod    = "NTLM"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPManagedAccount]ApplicationWebPoolAccount"
-            }
-            
-            SPCacheAccounts CacheAccounts
-            {
-                WebAppUrl               = "http://$webAppHostName"
-                SuperUserAlias          = "$shortDomainName\$($configParameters.SPOCSuperUser)"
-                SuperReaderAlias        = "$shortDomainName\$($configParameters.SPOCSuperReader)"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPWebApplication]RootWebApp"
-            }
-
-            SPWebAppPolicy RootWebAppPolicy
-            {
-                WebAppUrl               = "http://$webAppHostName"
-                MembersToInclude        = @(
-                    MSFT_SPWebPolicyPermissions {
-                        Username        = $SPInstallAccountCredential.UserName
-                        PermissionLevel = "Full Control"
-                        IdentityType    = "Claims"
-                    }
-                )
-                SetCacheAccountsPolicy = $true
-                PsDscRunAsCredential   = $SPInstallAccountCredential
-                DependsOn              = "[SPCacheAccounts]CacheAccounts"
-            }
-
-            SPSite RootPathSite
-            {
-                Url                     = "http://$webAppHostName"
-                OwnerAlias              = $SPInstallAccountCredential.UserName
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPWebApplication]RootWebApp"
-            }
-
-            SPSite RootHostSite
-            {
-                Url                         = "http://$SPSiteCollectionHostName"
-                OwnerAlias                  = $SPInstallAccountCredential.UserName
-                Template                    = "STS#0"
-                HostHeaderWebApplication    = "http://$webAppHostName"
-                PsDscRunAsCredential        = $SPInstallAccountCredential
-                DependsOn                   = "[SPSite]RootPathSite"
-            }
-            
-            SPManagedAccount SharePointServicesPoolAccount
-            {
-                AccountName             = $SPServicesAccountCredential.UserName
-                Account                 = $SPServicesAccountCredential
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPFarm]Farm"
-            }
-
-            SPServiceAppPool SharePointServicesAppPool
-            {
-                Name                    = "SharePoint Services App Pool"
-                ServiceAccount          = $SPServicesAccountCredential.UserName
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPManagedAccount]SharePointServicesPoolAccount"
-            }
-
-            <# temporary removing
-            SPAccessServiceApp AccessServiceApp
-            {
-                Name                    = "Access Services"
-                ApplicationPool         = "SharePoint Services App Pool";
-                DatabaseServer          = $configParameters.SPDatabaseAlias
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
-            }
-            #>
-
-            SPBCSServiceApp BCSServiceApp
-            {
-                Name                    = "Business Data Connectivity Service"
-                ApplicationPool         = "SharePoint Services App Pool";
-                DatabaseServer          = $configParameters.SPDatabaseAlias
-                DatabaseName            = "SP_BCS"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
-            }
-
-            SPManagedMetaDataServiceApp ManagedMetadataServiceApp
-            {
-                DatabaseName            = "SP_Metadata";
-                ApplicationPool         = "SharePoint Services App Pool";
-                ProxyName               = "Managed Metadata Service Application";
-                Name                    = "Managed Metadata Service Application";
-                Ensure                  = "Present";
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
-            }
-
-            SPPerformancePointServiceApp PerformancePoint
-            {
-                Name                    = "PerformancePoint Service Application"
-                ApplicationPool         = "SharePoint Services App Pool";
-                DatabaseName            = "SP_PerformancePoint"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
-            }
-
-            SPSecureStoreServiceApp SecureStoreServiceApp
-            {
-                Name                    = "Secure Store Service"
-                ApplicationPool         = "SharePoint Services App Pool"
-                AuditingEnabled         = $true
-                DatabaseName            = "SP_SecureStoreService"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
-            }
-
-            SPStateServiceApp StateServiceApp
-            {
-                Name                    = "State Service"
-                DatabaseName            = "SP_StateService"
-                Ensure                  = "Present"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
-            }
-
-            SPSubscriptionSettingsServiceApp SubscriptionSettingsServiceApp
-            {
-                Name                    = "Subscription Settings Service Application"
-                ApplicationPool         = "SharePoint Services App Pool"
-                DatabaseName            = "SP_SubscriptionSettings"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
-            }
-
-            SPAppManagementServiceApp AppManagementServiceApp
-            {
-                Name                    = "App Management Service Application"
-                ApplicationPool         = "SharePoint Services App Pool"
-                DatabaseName            = "SP_AppManagement"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPSubscriptionSettingsServiceApp]SubscriptionSettingsServiceApp"
-            }
-
-            SPUsageApplication UsageApplication 
-            {
-                Name                    = "Usage Service Application"
-                DatabaseName            = "SP_Usage"
-                UsageLogCutTime         = 5
-                UsageLogLocation        = "$logFolder\Usage"
-                UsageLogMaxFileSizeKB   = 1024
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
-            }
-
-            SPSite SearchCenterSite
-            {
-                Url                         = "http://$SPSiteCollectionHostName/sites/searchcenter"
-                OwnerAlias                  = $SPInstallAccountCredential.UserName
-                Template                    = "SRCHCEN#0"
-                HostHeaderWebApplication    = "http://$webAppHostName"
-                PsDscRunAsCredential        = $SPInstallAccountCredential
-                DependsOn                   = "[SPSite]RootPathSite"
-            }
-
-            SPSite MySite
-            {
-                Url                         = "http://$SPSiteCollectionHostName/sites/my"
-                OwnerAlias                  = $SPInstallAccountCredential.UserName
-                Template                    = "SPSMSITEHOST#0"
-                HostHeaderWebApplication    = "http://$webAppHostName"
-                PsDscRunAsCredential        = $SPInstallAccountCredential
-                DependsOn                   = "[SPSite]RootPathSite"
-            }
-
-            SPUserProfileServiceApp UserProfileServiceApp
-            {
-                Name                    = "User Profile Service Application"
-                ApplicationPool         = "SharePoint Services App Pool"
-                MySiteHostLocation      = "http://$SPSiteCollectionHostName/sites/my"
-                ProfileDBName           = "SP_UserProfiles"
-                SocialDBName            = "SP_Social"
-                SyncDBName              = "SP_ProfileSync"
-                EnableNetBIOS           = $false
-                FarmAccount             = $SPFarmAccountCredential
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = @("[SPServiceAppPool]SharePointServicesAppPool","[SPSite]MySite")
-            }
-
-            <# temporary removing
-            SPVisioServiceApp VisioServices
-            {
-                Name                    = "Visio Graphics Service"
-                ApplicationPool         = "SharePoint Services App Pool"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
-            }
-            #>
-
-            SPWordAutomationServiceApp WordAutomation
-            { 
-                Name                    = "Word Automation Service" 
-                Ensure                  = "Present"
-                ApplicationPool         = "SharePoint Services App Pool"
-                DatabaseName            = "SP_WordAutomation"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
-            }
-
-        }
-
-        Node $SearchQueryMachines
-        {
-
-            File IndexFolder
-            {
-                DestinationPath = $searchIndexDirectory
-                Type            = "Directory"
             }
 
         }
