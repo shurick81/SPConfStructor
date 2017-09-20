@@ -100,7 +100,7 @@ Configuration SPFarm
                 ServerName  = $DBServer
             }
 
-            <#
+            #xCredSSP resources are need for installing Profile service (AccessServiceApp and SPVisioServiceApp are to be tested later)
             xCredSSP CredSSPServer
             {
                 Ensure  = "Present"
@@ -113,7 +113,6 @@ Configuration SPFarm
                 Role = "Client";
                 DelegateComputers = "*.$DomainName"
             }
-            #>
     
             if ( $SPVersion -eq "2016" )
             {
@@ -379,7 +378,6 @@ Configuration SPFarm
                     DependsOn               = "[SPManagedAccount]SharePointServicesPoolAccount"
                 }
     
-                <#
                 SPAccessServiceApp AccessServiceApp
                 {
                     Name                    = "Access Services"
@@ -388,7 +386,6 @@ Configuration SPFarm
                     PsDscRunAsCredential    = $SPInstallAccountCredential
                     DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
                 }
-                #>
     
                 SPBCSServiceApp BCSServiceApp
                 {
@@ -468,7 +465,6 @@ Configuration SPFarm
                     DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
                 }
                 
-                <# temporary removing
                 SPUserProfileServiceApp UserProfileServiceApp
                 {
                     Name                    = "User Profile Service Application"
@@ -482,9 +478,7 @@ Configuration SPFarm
                     PsDscRunAsCredential    = $SPInstallAccountCredential
                     DependsOn               = @("[SPServiceAppPool]SharePointServicesAppPool")
                 }
-                #>
 
-                <#
                 SPVisioServiceApp VisioServices
                 {
                     Name                    = "Visio Graphics Service"
@@ -492,7 +486,6 @@ Configuration SPFarm
                     PsDscRunAsCredential    = $SPInstallAccountCredential
                     DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
                 }
-                #>
     
                 SPWordAutomationServiceApp WordAutomation
                 { 

@@ -29,27 +29,26 @@ Configuration DomainClient
             Credential  = $DomainAdminCredential
         }
 
-        #Local groups
-        if ( ( $configParameters.Machines | ? { $_.Name -eq $NodeName } ).Roles -contains "SQL" )
-        {
-            
-            Group AdminGroup
-            {
-                GroupName           = "Administrators"
-                Credential          = $DomainAdminCredential
-                MembersToInclude    = "$shortDomainName\$($configParameters.SQLAdminGroupName)"
-                DependsOn           = "[xDSCDomainJoin]DomainJoin"
-            }
+        $machineParameters = $configParameters.Machines | ? { $_.Name -eq $NodeName }
 
+        #Local groups
+        $localAdminsToInclude = @()
+        if ( $machineParameters.Roles -contains "SQL" )
+        {
+            $localAdminsToInclude += "$shortDomainName\$($configParameters.SQLAdminGroupName)"
         }
         if ( ( $configParameters.Machines | ? { $_.Name -eq $NodeName } ).Roles -contains "SharePoint" )
         {
-            
+            $localAdminsToInclude += "$shortDomainName\$($configParameters.SPAdminGroupName)"
+        }
+        if ( $localAdminsToInclude.Count -gt 0 )
+        {
+
             Group AdminGroup
             {
                 GroupName           = "Administrators"
                 Credential          = $DomainAdminCredential
-                MembersToInclude    = "$shortDomainName\$($configParameters.SPAdminGroupName)"
+                MembersToInclude    = $localAdminsToInclude
                 DependsOn           = "[xDSCDomainJoin]DomainJoin"
             }
 

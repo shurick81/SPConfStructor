@@ -193,7 +193,14 @@ if ( $azureParameters.DeleteResourceGroup )
     $resourceGroup = Get-AzureRmResourceGroup $resourceGroupName -ErrorAction Ignore;
     if ( $resourceGroup )
     {
-        Remove-AzureRmResourceGroup -Name $azureParameters.ResourceGroupName -Force | Out-Null;
+        $choice = $null;
+        while ( $choice -notmatch "[y|n]" ) {
+            $choice = read-host "Are you sure you want to delete $resourceGroupName resource group? (Y/N)"
+        }
+        if ( $choice -eq "y" ) {
+            Remove-AzureRmResourceGroup -Name $resourceGroupName -Force | Out-Null;
+        }
+        else { write-host "Resource group deletion is skipped by user" }
     }
 }
 
