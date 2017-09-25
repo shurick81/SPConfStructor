@@ -1,6 +1,6 @@
 @{
-    ImageResourceGroupName = "development"
-    ImageStorageAccount = "development7950"
+    ImageResourceGroupName = "images"
+    ImageStorageAccount = "images7950"
     #Where the SharePoint Image is located on your machine where you run the PowerShell script
     ImageLocalFolder = "D:\Install"
     ResourceGroupName = "SP201601"
@@ -9,7 +9,7 @@
     LocalAdminPassword = "123$%^qweRTY"
 
     DeleteResourceGroup = $false
-    PrepareResourceGroup = $false
+    PrepareResourceGroup = $true
     PrepareMachines = $true
     PrepareMachinesAfterImage = $false
     ADInstall = $true
@@ -33,8 +33,8 @@
     SPInstall = $true
     CodeToolsInstallation = $true
     ConfigurationToolsInstallation = $true
-    ADConfigure = $false
-    JoinDomain = $false
+    ADConfigure = $true
+    JoinDomain = $true
     ConfigureSharePoint = $true
     ShutDownAfterProvisioning = $false
 

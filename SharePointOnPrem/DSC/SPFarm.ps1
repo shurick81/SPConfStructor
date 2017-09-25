@@ -138,7 +138,7 @@ Configuration SPFarm
                     CentralAdministrationPort = 50555
                     ServerRole                = $serverRole
                     PsDscRunAsCredential      = $SPInstallAccountCredential
-                    DependsOn                 = @( <#"[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient",#> "[xSQLServerAlias]SPDBAlias" )
+                    DependsOn                 = @( "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[xSQLServerAlias]SPDBAlias" )
                 }
 
             }
@@ -156,7 +156,7 @@ Configuration SPFarm
                     RunCentralAdmin           = $isWFE
                     CentralAdministrationPort = 50555
                     PsDscRunAsCredential      = $SPInstallAccountCredential
-                    DependsOn                 = @( <#"[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient",#> "[xSQLServerAlias]SPDBAlias" )
+                    DependsOn                 = @( "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[xSQLServerAlias]SPDBAlias" )
                 }
             }
             if ( $isApplication -or $isDCNode )
@@ -378,6 +378,7 @@ Configuration SPFarm
                     DependsOn               = "[SPManagedAccount]SharePointServicesPoolAccount"
                 }
     
+                <#
                 SPAccessServiceApp AccessServiceApp
                 {
                     Name                    = "Access Services"
@@ -386,6 +387,7 @@ Configuration SPFarm
                     PsDscRunAsCredential    = $SPInstallAccountCredential
                     DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
                 }
+                #>
     
                 SPBCSServiceApp BCSServiceApp
                 {
@@ -479,6 +481,7 @@ Configuration SPFarm
                     DependsOn               = @("[SPServiceAppPool]SharePointServicesAppPool")
                 }
 
+                <#
                 SPVisioServiceApp VisioServices
                 {
                     Name                    = "Visio Graphics Service"
@@ -486,6 +489,7 @@ Configuration SPFarm
                     PsDscRunAsCredential    = $SPInstallAccountCredential
                     DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
                 }
+                #>
     
                 SPWordAutomationServiceApp WordAutomation
                 { 

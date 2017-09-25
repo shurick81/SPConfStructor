@@ -16,34 +16,18 @@
             Memory = 1.5
             DiskSize = 30
             WinVersion = "2016"
-            Image = "Win2016ADV001"
-        }
-        @{
-            Name = "SP201601sq01"
-            Roles = "SQL"
-            Memory = 14
-            DiskSize = 120
-            WinVersion = "2016"
-            Image = "Win2016SQL2016"
+            Image = ""
         }
         @{
             Name = "SP201601sp01"
-            Roles = "SharePoint", "WFE", "DistributedCache", "SearchQuery", "Code", "Configuration"
+            Roles = "SQL", "SharePoint", "SingleServerFarm", "Code", "Configuration"
             Memory = 14
             DiskSize = 120
             WinVersion = "2016"
-            Image = "Win2016SP2016CU201709EnRuSwNoCodeConfV001"
-        }
-        @{
-            Name = "SP201601sp02"
-            Roles = "SharePoint", "Application", "SearchCrawl"
-            Memory = 14
-            DiskSize = 120
-            WinVersion = "2016"
-            Image = "Win2016SP2016CU201709EnRuSwNoV001"
+            Image = ""
         }
     )
-    SPSiteCollectionHostName = "SP2016Ent01sp01.westeurope.cloudapp.azure.com"
+    SPSiteCollectionHostName = "SP201601sp01.westeurope.cloudapp.azure.com"
     SearchIndexDirectory = "c:\SPSearchIndex"
     SPProductKey = ""
     DomainAdminUserName = "dauser1"
