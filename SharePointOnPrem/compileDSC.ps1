@@ -176,8 +176,13 @@ if ( !$subscription )
 $resourceGroupName = $azureParameters.ResourceGroupName;
 $storageAccounts = Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName
 $storageAccountName = $storageAccounts[0].StorageAccountName;
-$imageStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
-$scriptStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
+if ( $azureParameters.ImageResourceGroupName -ne "" )
+{
+    $imageStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
+} else {
+    $imageStorageAccountKey = @{ Value = "" }
+}
+$scriptStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $resourceGroupName -Name $storageAccountName | ? { $_.KeyName -eq "key1" }
 
 #compiling domain
 $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
