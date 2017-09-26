@@ -7,6 +7,12 @@ Advantages:
 * Automated compiling DSC-files for non-azure environment (production, UAT, etc.).
 
 
-Currently, only SharePoint on premise part is implemented in the project. Check out https://github.com/shurick81/SPConfStructor/wiki/SPConfStructor-SharePoint-on-Premises-Quick-Start to dive in.
+Shortest path to the stuff:
+
+1. Make sure you have AzureRM.Compute PowerShell module 3.3.1 or higher on your machine.
+2. Copy all the files on your machine.
+3. Run "azureDeploy.ps1".
+4. Authenticate.
+5. Wait until the script finishes and connects you to the new machines via RDP.
 
 

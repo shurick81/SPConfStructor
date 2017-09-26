@@ -1,1 +1,1 @@
-The easiest way to start managing SharePoint Configuration via DSC and to automate SharePoint Development Infrastructure preparation. Check the wiki: https://github.com/shurick81/SPConfStructor/wiki
+The easiest way to start managing SharePoint Configuration via DSC and to automate SharePoint Development Infrastructure preparation.

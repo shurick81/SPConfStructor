@@ -8,7 +8,7 @@
     LocalAdminUserName = "splocaladm"
     LocalAdminPassword = "123$%^qweRTY"
 
-    DeleteResourceGroup = $true
+    DeleteResourceGroup = $false
     PrepareResourceGroup = $true
     PrepareMachines = $true
     PrepareMachinesAfterImage = $false
@@ -36,7 +36,7 @@
     ADConfigure = $true
     JoinDomain = $true
     ConfigureSharePoint = $true
-    ShutDownAfterProvisioning = $true
+    ShutDownAfterProvisioning = $false
 
     SubnetIpAddress = "192.168.0.0"
     PauseBeforeImaging = $false
