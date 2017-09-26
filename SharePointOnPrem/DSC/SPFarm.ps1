@@ -92,6 +92,13 @@ Configuration SPFarm
                 IPAddress = "127.0.0.1"
                 Ensure    = "Present"
             }
+
+            xHostsFile DemoSiteHostEntry
+            {
+                HostName  = "demo.sp2016.local"
+                IPAddress = "127.0.0.1"
+                Ensure    = "Present"
+            }
                     
             xSQLServerAlias SPDBAlias
             {
@@ -573,6 +580,17 @@ Configuration SPFarm
                     DependsOn                   = "[SPSite]RootPathSite"
                 }
     
+                SPSite MySite
+                {
+                    Url                         = "http://demo.sp2016.local"
+                    Name                        = "SPConfStructor demo site"
+                    OwnerAlias                  = $SPInstallAccountCredential.UserName
+                    Template                    = "STS#0"
+                    HostHeaderWebApplication    = "http://$webAppHostName"
+                    PsDscRunAsCredential        = $SPInstallAccountCredential
+                    DependsOn                   = "[SPSite]RootPathSite"
+                }
+
                 SPUserProfileServiceApp UserProfileServiceApp
                 {
                     Name                    = "User Profile Service Application"
