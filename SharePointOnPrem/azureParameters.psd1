@@ -1,9 +1,9 @@
 @{
-    ImageResourceGroupName = "images"
-    ImageStorageAccount = "images7950"
+    ImageResourceGroupName = ""
+    ImageStorageAccount = ""
     #Where the SharePoint Image is located on your machine where you run the PowerShell script
     ImageLocalFolder = "D:\Install"
-    ResourceGroupName = "SP201601"
+    ResourceGroupName = "SP2016dev"
     ResourceGroupLocation = "westeurope"
     LocalAdminUserName = "splocaladm"
     LocalAdminPassword = "123$%^qweRTY"

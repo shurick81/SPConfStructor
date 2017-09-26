@@ -11,7 +11,7 @@
     #ProvisioninngType options: Image, Url, Manual
     Machines = @(
         @{
-            Name = "SP201601ad01"
+            Name = "SP2016dev01ad01"
             Roles = "AD"
             Memory = 1.5
             DiskSize = 30
@@ -19,7 +19,7 @@
             Image = ""
         }
         @{
-            Name = "SP201601sp01"
+            Name = "SP2016dev01sp01"
             Roles = "SQL", "SharePoint", "SingleServerFarm", "Code", "Configuration"
             Memory = 14
             DiskSize = 120
