@@ -580,7 +580,7 @@ Configuration SPFarm
                     DependsOn                   = "[SPSite]RootPathSite"
                 }
     
-                SPSite MySite
+                SPSite DemoSite
                 {
                     Url                         = "http://demo.sp2016.local"
                     Name                        = "SPConfStructor demo site"
