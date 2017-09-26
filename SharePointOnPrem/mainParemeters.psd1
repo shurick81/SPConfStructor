@@ -27,7 +27,7 @@
             Image = ""
         }
     )
-    SPSiteCollectionHostName = "SP201601sp01.westeurope.cloudapp.azure.com"
+    SPSiteCollectionHostName = "SP2016dev01sp01.westeurope.cloudapp.azure.com"
     SearchIndexDirectory = "c:\SPSearchIndex"
     SPProductKey = ""
     DomainAdminUserName = "dauser1"

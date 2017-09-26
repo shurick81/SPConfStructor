@@ -584,7 +584,7 @@ Configuration SPFarm
                     EnableNetBIOS           = $false
                     FarmAccount             = $SPFarmAccountCredential
                     PsDscRunAsCredential    = $SPInstallAccountCredential
-                    DependsOn               = @( "[SPServiceAppPool]SharePointServicesAppPool", "[SPSite]MySite" )
+                    DependsOn               = @( "[xCredSSP]CredSSPServer", "[xCredSSP]CredSSPClient", "[SPServiceAppPool]SharePointServicesAppPool", "[SPSite]MySite" )
                 }
 
             }
