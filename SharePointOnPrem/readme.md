@@ -7,6 +7,6 @@ Advantages:
 * Automated compiling DSC-files for non-azure environment (production, UAT, etc.).
 
 
-Currently, only SharePoint on premise part is implemented in the project. Check out https://github.com/shurick81/SPConfStructor/wiki/SPConfStructor-SharePoint-on-Premises-Quick-Start to dive in.
+For the quickest introduction, check out https://github.com/shurick81/SPConfStructor/wiki/SPConfStructor-SharePoint-on-Premises-Quick-Start.
 
 
