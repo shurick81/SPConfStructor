@@ -396,7 +396,12 @@ function PrepareMachine ( $machineParameters ) {
                 $configFileName = ".\DSC\$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
                 Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
-                $imageStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
+                if ( $azureParameters.ImageResourceGroupName -ne "" )
+                {
+                    $imageStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
+                } else {
+                    $imageStorageAccountKey = @{ Value = "" }
+                }
                 $scriptStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $resourceGroupName -Name $storageAccountName | ? { $_.KeyName -eq "key1" }
                 $configurationArguments = @{
                     ConfigParameters = $configParameters

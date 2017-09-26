@@ -131,7 +131,7 @@ Configuration SPFarm
                     Ensure                    = "Present"
                     DatabaseServer            = $configParameters.SPDatabaseAlias
                     FarmConfigDatabaseName    = "SP_Config"
-                    AdminContentDatabaseName  = "SP_AdminContent"
+                    AdminContentDatabaseName  = "SP_Content_CA"
                     Passphrase                = $SPPassphraseCredential
                     FarmAccount               = $SPFarmAccountCredential
                     RunCentralAdmin           = $isWFE
@@ -467,20 +467,6 @@ Configuration SPFarm
                     DependsOn               = "[SPServiceAppPool]SharePointServicesAppPool"
                 }
                 
-                SPUserProfileServiceApp UserProfileServiceApp
-                {
-                    Name                    = "User Profile Service Application"
-                    ApplicationPool         = "SharePoint Services App Pool"
-                    MySiteHostLocation      = "http://$SPSiteCollectionHostName/sites/my"
-                    ProfileDBName           = "SP_UserProfiles"
-                    SocialDBName            = "SP_Social"
-                    SyncDBName              = "SP_ProfileSync"
-                    EnableNetBIOS           = $false
-                    FarmAccount             = $SPFarmAccountCredential
-                    PsDscRunAsCredential    = $SPInstallAccountCredential
-                    DependsOn               = @("[SPServiceAppPool]SharePointServicesAppPool")
-                }
-
                 <#
                 SPVisioServiceApp VisioServices
                 {
@@ -512,7 +498,7 @@ Configuration SPFarm
     
                 SPWebApplication RootWebApp
                 {
-                    Name                    = "RootWebApp"
+                    Name                    = "SPConfStructor RootWebApp"
                     ApplicationPool         = "All Web Applications"
                     ApplicationPoolAccount  = $SPWebAppPoolAccountCredential.UserName
                     Url                     = "http://$webAppHostName"
@@ -557,6 +543,7 @@ Configuration SPFarm
                 SPSite RootHostSite
                 {
                     Url                         = "http://$SPSiteCollectionHostName"
+                    Name                        = "SPConfStructor demo team site"
                     OwnerAlias                  = $SPInstallAccountCredential.UserName
                     Template                    = "STS#0"
                     HostHeaderWebApplication    = "http://$webAppHostName"
@@ -567,6 +554,7 @@ Configuration SPFarm
                 SPSite SearchCenterSite
                 {
                     Url                         = "http://$SPSiteCollectionHostName/sites/searchcenter"
+                    Name                        = "SPConfStructor demo search site"
                     OwnerAlias                  = $SPInstallAccountCredential.UserName
                     Template                    = "SRCHCEN#0"
                     HostHeaderWebApplication    = "http://$webAppHostName"
@@ -577,6 +565,7 @@ Configuration SPFarm
                 SPSite MySite
                 {
                     Url                         = "http://$SPSiteCollectionHostName/sites/my"
+                    Name                        = "SPConfStructor demo user profile site"
                     OwnerAlias                  = $SPInstallAccountCredential.UserName
                     Template                    = "SPSMSITEHOST#0"
                     HostHeaderWebApplication    = "http://$webAppHostName"
@@ -584,6 +573,20 @@ Configuration SPFarm
                     DependsOn                   = "[SPSite]RootPathSite"
                 }
     
+                SPUserProfileServiceApp UserProfileServiceApp
+                {
+                    Name                    = "User Profile Service Application"
+                    ApplicationPool         = "SharePoint Services App Pool"
+                    MySiteHostLocation      = "http://$SPSiteCollectionHostName/sites/my"
+                    ProfileDBName           = "SP_UserProfiles"
+                    SocialDBName            = "SP_Social"
+                    SyncDBName              = "SP_UserProfileSync"
+                    EnableNetBIOS           = $false
+                    FarmAccount             = $SPFarmAccountCredential
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = @( "[SPServiceAppPool]SharePointServicesAppPool", "[SPSite]MySite" )
+                }
+
             }
             if ( $isSearchQuery )
             {

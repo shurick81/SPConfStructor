@@ -38,4 +38,8 @@
             URL = "https://download.visualstudio.microsoft.com/download/pr/11346816/52257ee3e96d6e07313e41ad155b155a/vs_Enterprise.exe"
         }
     }
+    "SPD" = @{
+        URL = "https://download.microsoft.com/download/3/E/3/3E383BC4-C6EC-4DEA-A86A-C0E99F0F3BD9/sharepointdesigner_32bit.exe"
+        SP1URL = "https://download.microsoft.com/download/3/F/6/3F6A2395-73CB-4F2B-9401-F4F9D08A2336/spdsp2013-kb2817441-fullfile-x86-en-us.exe"
+    }
 }
