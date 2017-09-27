@@ -150,7 +150,7 @@ Configuration SPFarm
                     Ensure                    = "Present"
                     DatabaseServer            = $configParameters.SPDatabaseAlias
                     FarmConfigDatabaseName    = "SP_Config"
-                    AdminContentDatabaseName  = "SP_AdminContent"
+                    AdminContentDatabaseName  = "SP_Content_CA"
                     Passphrase                = $SPPassphraseCredential
                     FarmAccount               = $SPFarmAccountCredential
                     RunCentralAdmin           = $isWFE
