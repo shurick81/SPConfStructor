@@ -17,5 +17,6 @@ Install-Module -Name cAzureStorage -Force
 Install-Module -Name xSQLServer -Force
 Install-Module -Name xPendingReboot -Force
 Install-Module -Name xWindowsUpdate -Force
+Install-Module -Name xCredSSP -Force
 Install-Module -Name SharePointDSC -Force
 Install-Module -Name xWebAdministration -Force
