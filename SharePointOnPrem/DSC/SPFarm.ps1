@@ -559,7 +559,7 @@ Configuration SPFarm
                     Template                    = "SRCHCEN#0"
                     HostHeaderWebApplication    = "http://$webAppHostName"
                     PsDscRunAsCredential        = $SPInstallAccountCredential
-                    DependsOn                   = "[SPSite]RootPathSite"
+                    DependsOn                   = "[SPSite]RootHostSite"
                 }
     
                 SPSite MySite
