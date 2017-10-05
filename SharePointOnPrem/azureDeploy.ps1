@@ -273,12 +273,17 @@ function CreateMachine ( $machineParameters ) {
     if ( $machineParameters.Memory -le 1.5 ) { $VMSize = "Basic_A1" } else { $VMSize = "Standard_D11_v2" }
     if ( $machineParameters.Memory -gt 14 ) { $VMSize = "Standard_D12_v2" }
     # Check SKUS: Get-AzureRmVMImageSku -Location westeurope -PublisherName MicrosoftWindowsServer -Offer WindowsServer
+    $publisherName = "MicrosoftWindowsServer"        
     $offer = "WindowsServer";
     $skusPrefix = "2016";
     if ( $machineParameters.WinVersion -eq "2012" ) { $skusPrefix = "2012" }
     if ( $machineParameters.WinVersion -eq "2012R2" ) { $skusPrefix = "2012-R2" }
     if ( $machineParameters.DiskSize -le 30 ) { $skus = "$skusPrefix-Datacenter-smalldisk" } else { $skus = "$skusPrefix-Datacenter" }
-    if ( $machineParameters.WinVersion -eq "10" ) { $offer = "Windows"; $skus = "Windows10-RS2-Pro" }
+    if ( $machineParameters.WinVersion -eq "10" ) {
+        $publisherName = "MicrosoftWindowsDesktop"        
+        $offer = "Windows-10";
+        $skus = "RS2-Pro"
+    }
     
     if ( $machineParameters.Roles -contains "AD" ) { $vmCredential = $ShortDomainAdminCredential } else { $vmCredential = $LocalAdminCredential }
 
@@ -294,7 +299,7 @@ function CreateMachine ( $machineParameters ) {
     } else {
         $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize | `
             Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
-            Set-AzureRmVMSourceImage -PublisherName MicrosoftWindowsServer -Offer $offer -Skus $skus -Version latest | `
+            Set-AzureRmVMSourceImage -PublisherName $publisherName -Offer $offer -Skus $skus -Version latest | `
             Add-AzureRmVMNetworkInterface -Id $nic.Id
     }
     New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
@@ -304,10 +309,10 @@ function PrepareMachine ( $machineParameters ) {
     $machineName = $machineParameters.Name;
     if ( $azureParameters.PrepareMachines )
     {
-        if ( $machineParameters.WinVersion -eq "2012" ) {
+        if ( ( $machineParameters.WinVersion -eq "2012" ) -or ( $machineParameters.WinVersion -eq "10" ) ) {
             Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 10 -ParentId 1 -CurrentOperation "Preparing Windows 2012 on $machineName";            
             $containerName = "psscripts";
-            $fileName = "Win2012Prepare.ps1"
+            $fileName = "SetExecutionPolicy.ps1"
             Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName;
             $existingStorageContainer = $null;
             $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
