@@ -51,6 +51,30 @@
             Image = "Win2016SP2016CU201709EnRuSwNo"
         }
         @{
+            Name = "SP16infrdev1sp4"
+            Roles = "SharePoint", "WFE", "DistributedCache"
+            Memory = 14
+            DiskSize = 120
+            WinVersion = "2016"
+            Image = "Win2016SP2016CU201709EnRuSwNo"
+        }
+        @{
+            Name = "SP16infrdev1sp5"
+            Roles = "SharePoint", "SearchQuery"
+            Memory = 14
+            DiskSize = 120
+            WinVersion = "2016"
+            Image = "Win2016SP2016CU201709EnRuSwNo"
+        }
+        @{
+            Name = "SP16infrdev1sp6"
+            Roles = "SharePoint", "Application", "SearchCrawl"
+            Memory = 14
+            DiskSize = 120
+            WinVersion = "2016"
+            Image = "Win2016SP2016CU201709EnRuSwNo"
+        }
+        @{
             Name = "SP16infrdev1cl1"
             Roles = "Configuration"
             Memory = 1.5

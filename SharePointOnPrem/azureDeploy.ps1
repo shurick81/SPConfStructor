@@ -175,7 +175,14 @@ $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
 
 $resourceGroupName = $azureParameters.ResourceGroupName;
 $resourceGroupLocation = $azureParameters.ResourceGroupLocation;
+$imageResourceGroupName = $azureParameters.ImageResourceGroupName;
+if ( !$imageResourceGroupName -or ( $imageResourceGroupName -eq "" ) )
+{
+    $imageResourceGroupName = $resourceGroupName;
+}
+$imageStorageAccountName = $azureParameters.ImageStorageAccount
 $vnetName = ( $resourceGroupName + "VNet");
+
 
 $subscription = $null;
 $subscription = Get-AzureRmSubscription;
@@ -403,7 +410,7 @@ function PrepareMachine ( $machineParameters ) {
                 Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
                 if ( $azureParameters.ImageResourceGroupName -ne "" )
                 {
-                    $imageStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
+                    $imageStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $imageStorageAccountName | ? { $_.KeyName -eq "key1" }
                 } else {
                     $imageStorageAccountKey = @{ Value = "" }
                 }
@@ -473,7 +480,7 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
 
 $azurePreparationPercentage = 3;
 $numberOfMachines = $configParameters.Machines.Count
-$machinePercentage = ( 70 - $azurePreparationPercentage ) / ( $numberOfMachines )
+$machinePercentage = ( 50 - $azurePreparationPercentage ) / ( $numberOfMachines )
 
 $machineCounter = 0;
 $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name $vnetName;
@@ -488,9 +495,22 @@ $configParameters.Machines | % {
     {
         if ( !$vm )
         {
+            $imageResourceGroup = $null;
+            $imageResourceGroup = Get-AzureRmResourceGroup $imageResourceGroupName -ErrorAction SilentlyContinue;
+            if ( !$imageResourceGroup )
+            {
+                New-AzureRmResourceGroup -Name $imageResourceGroupName -Location $resourceGroupLocation | Out-Null;                
+            }
+            $imageStorageAccount = $null;
+            $imageStorageAccount = Get-AzureRmStorageAccount -ResourceGroupName $imageResourceGroupName -Name $imageStorageAccountName -ErrorAction SilentlyContinue;
+            if ( !$imageStorageAccount )
+            {
+                New-AzureRmStorageAccount -ResourceGroupName $imageResourceGroupName -Name $imageStorageAccountName -Location $resourceGroupLocation `
+                -SkuName "Standard_LRS" -Kind "Storage" | Out-Null;
+            }
             $image = $null;
             $imageName = $_.Image
-            $image = Get-AzureRMImage -ResourceGroupName $azureParameters.ImageResourceGroupName | ? { $_.Name -eq $imageName }
+            $image = Get-AzureRMImage -ResourceGroupName $imageResourceGroupName | ? { $_.Name -eq $imageName }
             if ( !$image ) {
                 $templateMachineName = "templatemachine";
                 Write-Host "$(Get-Date) Creating $templateMachineName temporary"
@@ -578,7 +598,7 @@ $configParameters.Machines | % {
 }
 
 #Domain deploying
-Write-Progress -Activity 'Configuring Active Directory' -PercentComplete 70 -id 1;
+Write-Progress -Activity 'Configuring Active Directory' -PercentComplete 50 -id 1;
 if ( $azureParameters.ADConfigure )
 {
     $ADMachines = $configParameters.Machines | ? { $_.Roles -contains "AD" }
@@ -608,7 +628,7 @@ if ( $azureParameters.ADConfigure )
     }
 }
 
-Write-Progress -Activity 'Joining domain' -PercentComplete 75 -id 1;
+Write-Progress -Activity 'Joining domain' -PercentComplete 55 -id 1;
 if ( $azureParameters.JoinDomain )
 {
     $firstAdVMName = $null;
@@ -641,7 +661,7 @@ if ( $azureParameters.JoinDomain )
     }
 }
 
-Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete 85 -id 1;
+Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete 65 -id 1;
 if ( $azureParameters.ConfigureSharePoint )
 {
 
@@ -728,7 +748,7 @@ if ( $azureParameters.ConfigureSharePoint )
     }
 }
 
-Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete 100 -id 1;
+Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete 99 -id 1;
 if ( $azureParameters.ShutDownAfterProvisioning )
 {
     Write-Host "$(Get-Date) Stopping all the machines"

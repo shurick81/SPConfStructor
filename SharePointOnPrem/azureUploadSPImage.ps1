@@ -7,6 +7,16 @@ Param(
 
 Get-Date
 $azureParameters = Import-PowershellDataFile $azureParametersFileName;
+$resourceGroupName = $azureParameters.ResourceGroupName;
+$resourceGroupLocation = $azureParameters.ResourceGroupLocation;
+$imageResourceGroupName = $azureParameters.ImageResourceGroupName;
+if ( !$imageResourceGroupName -or ( $imageResourceGroupName -eq "" ) )
+{
+    $imageResourceGroupName = $resourceGroupName;
+}
+$imageStorageAccountName = $azureParameters.ImageStorageAccount
+$containerName = $azureParameters.SPImageAzureContainerName;
+
 $subscription = $null;
 $subscription = Get-AzureRmSubscription;
 if ( !$subscription )
@@ -16,9 +26,20 @@ if ( !$subscription )
     Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
     Login-AzureRmAccount | Out-Null;
 }
-$containerName = $azureParameters.SPImageAzureContainerName;
-$fileName = $azureParameters.SPImageFileName;
-$subscriptionName = (Get-AzureRmSubscription)[0].Name;
+
+$imageResourceGroup = $null;
+$imageResourceGroup = Get-AzureRmResourceGroup $imageResourceGroupName -ErrorAction SilentlyContinue;
+if ( !$imageResourceGroup )
+{
+    New-AzureRmResourceGroup -Name $imageResourceGroupName -Location $resourceGroupLocation | Out-Null;                
+}
+$imageStorageAccount = $null;
+$imageStorageAccount = Get-AzureRmStorageAccount -ResourceGroupName $imageResourceGroupName -Name $imageStorageAccountName -ErrorAction SilentlyContinue;
+if ( !$imageStorageAccount )
+{
+    New-AzureRmStorageAccount -ResourceGroupName $imageResourceGroupName -Name $imageStorageAccountName -Location $resourceGroupLocation `
+    -SkuName "Standard_LRS" -Kind "Storage" | Out-Null;
+}
 Set-AzureRmCurrentStorageAccount -StorageAccountName $azureParameters.ImageStorageAccount -ResourceGroupName $azureParameters.ImageResourceGroupName;
 $existingStorageContainer = $null;
 $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
