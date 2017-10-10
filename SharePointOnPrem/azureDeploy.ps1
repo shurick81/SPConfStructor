@@ -562,7 +562,7 @@ $configParameters.Machines | % {
                 $vm = Get-AzureRmVM $resourceGroupName $templateMachineName;
                 $diskName = $vm.StorageProfile.OsDisk.Name;
                 Remove-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null;
-                Remove-AzureRmDisk -ResourceGroupName $resourceGroupName -Name $diskName -Force;
+                Remove-AzureRmDisk -ResourceGroupName $resourceGroupName -Name $diskName -Force | Out-Null;
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 80 -ParentId 1 -CurrentOperation "Creating $machineName machine via template";
             } else {
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 0 -ParentId 1 -CurrentOperation "Creating $machineName machine via template";
@@ -690,7 +690,13 @@ if ( $azureParameters.ConfigureSharePoint )
                 SPSearchServiceAccountCredential = $SPSearchServiceAccountCredential
                 SPCrawlerAccountCredential = $SPCrawlerAccountCredential
             }
-            Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            $extensionSetting = $null;
+            $iterationCount = 0;
+            Do {
+                Write-Host "$(Get-Date) Iteration $iterationCount"
+                $extensionSetting = Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Ignore;
+                $iterationCount++;
+            } while ( !$extensionSetting -or !$extensionSetting.IsSuccessStatusCode )
         }
     }        
     if ( $SPMachineNames.Count -gt 1 )
@@ -716,7 +722,13 @@ if ( $azureParameters.ConfigureSharePoint )
                 SPCrawlerAccountCredential = $SPCrawlerAccountCredential
                 GranularApplying = $true
             }
-            Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            $extensionSetting = $null;
+            $iterationCount = 0;
+            Do {
+                Write-Host "$(Get-Date) Iteration $iterationCount"
+                $extensionSetting = Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Ignore;
+                $iterationCount++;
+            } while ( !$extensionSetting -or !$extensionSetting.IsSuccessStatusCode )
         }
 
         $SearchQueryMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchQuery" }
@@ -743,7 +755,13 @@ if ( $azureParameters.ConfigureSharePoint )
             Write-Host "$(Get-Date) Deploying $configName extension on $machineName (Search granule)"
             Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
             Remove-Item $tempConfigDataFilePath;
-            Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            $extensionSetting = $null;
+            $iterationCount = 0;
+            Do {
+                Write-Host "$(Get-Date) Iteration $iterationCount"
+                $extensionSetting = Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Ignore;
+                $iterationCount++;
+            } while ( !$extensionSetting -or !$extensionSetting.IsSuccessStatusCode )
         }
     }
 }
@@ -766,7 +784,7 @@ if ( $azureParameters.ShutDownAfterProvisioning )
         $networkInterface = Get-AzureRmNetworkInterface | ? { $_.Id -eq $networkInterfaceRef }
         $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName | ? { $_.id -eq $networkInterface.IpConfigurations[0].PublicIpAddress.id }
         Write-Host "$($_.Name) $($pip.IpAddress)"
-        if ( $_.Roles -contains "Code" )
+        if ( ( $_.Roles -contains "Code" ) -or ( $_.Roles -contains "Configuration" ) )
         {
             . .\Connect-Mstsc\Connect-Mstsc.ps1
             Connect-Mstsc -ComputerName $pip.IpAddress -User "$shortDomainName\$($configParameters.SPInstallAccountUserName)" -Password $configParameters.SPInstallAccountPassword

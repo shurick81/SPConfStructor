@@ -31,4 +31,17 @@ if ( $ADClientMachines )
         Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name;
     }
 }
+$configParameters.Machines | % {
+    $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -VMName $_.Name;
+    $networkInterfaceRef = $vm.NetworkProfile[0].NetworkInterfaces[0].id;
+    $networkInterface = Get-AzureRmNetworkInterface | ? { $_.Id -eq $networkInterfaceRef }
+    $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName | ? { $_.id -eq $networkInterface.IpConfigurations[0].PublicIpAddress.id }
+    Write-Host "$($_.Name) $($pip.IpAddress)"
+    if ( ( $_.Roles -contains "Code" ) -or ( $_.Roles -contains "Configuration" ) )
+    {
+        . .\Connect-Mstsc\Connect-Mstsc.ps1
+        Connect-Mstsc -ComputerName $pip.IpAddress -User "$shortDomainName\$($configParameters.SPInstallAccountUserName)" -Password $configParameters.SPInstallAccountPassword
+    }
+}
+
 Get-Date
