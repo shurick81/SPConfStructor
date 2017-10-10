@@ -11,6 +11,9 @@ Param(
 Get-Date
 $configParameters = Import-PowershellDataFile $mainParametersFileName;
 $azureParameters = Import-PowershellDataFile $azureParametersFileName;
+$DomainName = $configParameters.DomainName;
+$shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
+$resourceGroupName = $azureParameters.ResourceGroupName;
 $subscription = $null;
 $subscription = Get-AzureRmSubscription;
 if ( !$subscription )

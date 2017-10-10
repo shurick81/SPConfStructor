@@ -40,7 +40,7 @@ if ( !$imageStorageAccount )
     New-AzureRmStorageAccount -ResourceGroupName $imageResourceGroupName -Name $imageStorageAccountName -Location $resourceGroupLocation `
     -SkuName "Standard_LRS" -Kind "Storage" | Out-Null;
 }
-Set-AzureRmCurrentStorageAccount -StorageAccountName $azureParameters.ImageStorageAccount -ResourceGroupName $azureParameters.ImageResourceGroupName;
+Set-AzureRmCurrentStorageAccount -StorageAccountName $imageStorageAccountName -ResourceGroupName $azureParameters.ImageResourceGroupName;
 $existingStorageContainer = $null;
 $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
 if ( !$existingStorageContainer )

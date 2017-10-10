@@ -200,14 +200,7 @@ if ( $azureParameters.DeleteResourceGroup )
     $resourceGroup = Get-AzureRmResourceGroup $resourceGroupName -ErrorAction Ignore;
     if ( $resourceGroup )
     {
-        $choice = $null;
-        while ( $choice -notmatch "[y|n]" ) {
-            $choice = read-host "Are you sure you want to delete $resourceGroupName resource group? (Y/N)"
-        }
-        if ( $choice -eq "y" ) {
-            Remove-AzureRmResourceGroup -Name $resourceGroupName -Force | Out-Null;
-        }
-        else { write-host "Resource group deletion is skipped by user" }
+        Remove-AzureRmResourceGroup -Name $resourceGroupName | Out-Null;
     }
 }
 
@@ -298,7 +291,7 @@ function CreateMachine ( $machineParameters ) {
     if ( $imageParameter -and ( $imageParameter -ne "" ) )
     {
         $image = $null;
-        $image = Get-AzureRMImage -ResourceGroupName $azureParameters.ImageResourceGroupName -ImageName $machineParameters.Image;
+        $image = Get-AzureRMImage -ResourceGroupName $imageResourceGroupName | ? { ( $_.Name -eq $imageName ) -and ( $_.Location -eq $resourceGroupLocation ) }
         $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize | `
             Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
             Set-AzureRmVMSourceImage -Id $image.Id | `
@@ -501,16 +494,9 @@ $configParameters.Machines | % {
             {
                 New-AzureRmResourceGroup -Name $imageResourceGroupName -Location $resourceGroupLocation | Out-Null;                
             }
-            $imageStorageAccount = $null;
-            $imageStorageAccount = Get-AzureRmStorageAccount -ResourceGroupName $imageResourceGroupName -Name $imageStorageAccountName -ErrorAction SilentlyContinue;
-            if ( !$imageStorageAccount )
-            {
-                New-AzureRmStorageAccount -ResourceGroupName $imageResourceGroupName -Name $imageStorageAccountName -Location $resourceGroupLocation `
-                -SkuName "Standard_LRS" -Kind "Storage" | Out-Null;
-            }
             $image = $null;
             $imageName = $_.Image
-            $image = Get-AzureRMImage -ResourceGroupName $imageResourceGroupName | ? { $_.Name -eq $imageName }
+            $image = Get-AzureRMImage -ResourceGroupName $imageResourceGroupName | ? { ( $_.Name -eq $imageName ) -and ( $_.Location -eq $resourceGroupLocation ) }
             if ( !$image ) {
                 $templateMachineName = "templatemachine";
                 Write-Host "$(Get-Date) Creating $templateMachineName temporary"
