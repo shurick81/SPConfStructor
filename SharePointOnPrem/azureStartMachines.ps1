@@ -23,15 +23,37 @@ if ( !$subscription )
     Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
     Login-AzureRmAccount | Out-Null;
 }
+$noADwasrunning = $false;
 $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
-    Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name;
+    $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $_.Name -Status
+    $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+    if ( $powerState.DisplayStatus -ne "VM running" )
+    {
+        Write-Host "Starting $($_.Name)"
+        Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name;
+        $noADwasrunning = $true;
+    } else {
+        Write-Host "$($_.Name) is already started"
+    }
 }
 $ADClientMachines = $configParameters.Machines | ? { $_.Roles -notcontains "AD" }
 if ( $ADClientMachines )
 {
-    sleep 300;
+    if ( $noADwasrunning )
+    {
+        Write-Host "Let's wait 5 minutes to make sure that domain is up and running"
+        sleep 300;
+    }
     $ADClientMachines | % {
-        Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name;
+        $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $_.Name -Status
+        $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+        if ( $powerState.DisplayStatus -ne "VM running" )
+        {
+            Write-Host "Starting $($_.Name)"
+            Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name;
+        } else {
+            Write-Host "$($_.Name) is already started"
+        }
     }
 }
 $configParameters.Machines | % {

@@ -401,9 +401,9 @@ function PrepareMachine ( $machineParameters ) {
                 $configFileName = ".\DSC\$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
                 Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
-                if ( $azureParameters.ImageResourceGroupName -ne "" )
+                if ( $azureParameters.SPMediaSource -eq "AzureBlobImage" )
                 {
-                    $imageStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $imageStorageAccountName | ? { $_.KeyName -eq "key1" }
+                    $imageStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $imageStorageAccountName -Name $imageStorageAccountName | ? { $_.KeyName -eq "key1" }
                 } else {
                     $imageStorageAccountKey = @{ Value = "" }
                 }
@@ -533,16 +533,16 @@ $configParameters.Machines | % {
                 Write-Host "$(Get-Date) Waiting until $templateMachineName shuts down"
                 Do {
                     Sleep 3;
-                    $vm = Get-AzureRmVM -Status | ? { ( $_.ResourceGroupName -eq $resourceGroupName ) -and ( $_.Name -eq $templateMachineName ) }
-                    $vmState = $vm.PowerState;
-                } while ( $vmState -ne "VM stopped" )
+                    $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Status
+                    $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+                } while ( $powerState.DisplayStatus -ne "VM stopped" )
                 Write-Host "$(Get-Date) Deallocating $templateMachineName"
                 Stop-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null
                 Write-Host "$(Get-Date) Extracting image $templateMachineName"
                 Set-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Generalized | Out-Null
                 $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName;
                 $image = New-AzureRmImageConfig -Location $resourceGroupLocation -SourceVirtualMachineId $vm.ID;
-                New-AzureRmImage -Image $image -ImageName $_.Image -ResourceGroupName $azureParameters.ImageResourceGroupName | Out-Null;
+                New-AzureRmImage -Image $image -ImageName $_.Image -ResourceGroupName $imageResourceGroupName | Out-Null;
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 70 -ParentId 1 -CurrentOperation "Removing template machine $templateMachineName";
                 Write-Host "$(Get-Date) Removing template machine $templateMachineName";
                 $vm = Get-AzureRmVM $resourceGroupName $templateMachineName;
@@ -554,6 +554,13 @@ $configParameters.Machines | % {
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 0 -ParentId 1 -CurrentOperation "Creating $machineName machine via template";
             }
             CreateMachine $_;
+        } else {
+            $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $machineName -Status
+            $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+            if ( $powerState.DisplayStatus -ne "VM running" )
+            {
+                Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $machineName;
+            }
         }
         if ( $azureParameters.PrepareMachinesAfterImage )
         {
@@ -564,6 +571,13 @@ $configParameters.Machines | % {
         {
             Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 0 -ParentId 1 -CurrentOperation "Creating $machineName machine";            
             CreateMachine $_;
+        } else {
+            $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $machineName -Status
+            $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+            if ( $powerState.DisplayStatus -ne "VM running" )
+            {
+                Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $machineName;
+            }
         }
         PrepareMachine $_;
     }

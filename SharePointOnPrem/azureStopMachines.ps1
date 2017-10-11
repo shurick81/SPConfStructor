@@ -20,9 +20,19 @@ if ( !$subscription )
     Login-AzureRmAccount | Out-Null;
 }
 $configParameters.Machines | ? { $_.Roles -notcontains "AD" } | % {
-    Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
+    $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $_.Name -Status
+    $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+    if ( $powerState.DisplayStatus -ne "VM stopped" )
+    {
+        Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
+    }
 }
 $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
-    Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
+    $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $_.Name -Status
+    $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+    if ( $powerState.DisplayStatus -ne "VM stopped" )
+    {
+        Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
+    }
 }
 Get-Date
