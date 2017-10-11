@@ -1,7 +1,7 @@
 [CmdletBinding()]
 Param(
     [Parameter(Mandatory=$False,Position=1)]
-    [string]$mainParametersFileName = "mainParemeters.psd1",
+    [string]$mainParametersFileName = "mainParameters.psd1",
 	
     [Parameter(Mandatory=$False,Position=2)]
     [string]$azureParametersFileName = "azureParameters.psd1"
@@ -10,6 +10,7 @@ Param(
 Get-Date
 $configParameters = Import-PowershellDataFile $mainParametersFileName;
 $azureParameters = Import-PowershellDataFile $azureParametersFileName;
+$resourceGroupName = $azureParameters.ResourceGroupName;
 $subscription = $null;
 $subscription = Get-AzureRmSubscription;
 if ( !$subscription )

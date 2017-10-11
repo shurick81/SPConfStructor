@@ -1,7 +1,7 @@
 [CmdletBinding()]
 Param(
     [Parameter(Mandatory=$False,Position=1)]
-    [string]$mainParametersFileName = "mainParemeters.psd1",
+    [string]$mainParametersFileName = "mainParameters.psd1",
 	
     [Parameter(Mandatory=$False,Position=2)]
     [string]$azureParametersFileName = "azureParameters.psd1"
@@ -59,9 +59,11 @@ if ( $ADClientMachines )
 $configParameters.Machines | % {
     $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -VMName $_.Name;
     $networkInterfaceRef = $vm.NetworkProfile[0].NetworkInterfaces[0].id;
-    $networkInterface = Get-AzureRmNetworkInterface | ? { $_.Id -eq $networkInterfaceRef }
-    $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName | ? { $_.id -eq $networkInterface.IpConfigurations[0].PublicIpAddress.id }
-    Write-Host "$($_.Name) $($pip.IpAddress)"
+    $NIName = $networkInterfaceRef.Split("/")[-1];
+    $networkInterface = Get-AzureRmNetworkInterface -ResourceGroupName $resourceGroupName -Name $NIName;
+    $PIPName = $networkInterface.IpConfigurations[0].PublicIpAddress.id.Split("/")[-1];
+    $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName -Name $PIPName;
+    Write-Host "$($_.Name) $($pip.IpAddress)";
     if ( ( $_.Roles -contains "Code" ) -or ( $_.Roles -contains "Configuration" ) )
     {
         . .\Connect-Mstsc\Connect-Mstsc.ps1

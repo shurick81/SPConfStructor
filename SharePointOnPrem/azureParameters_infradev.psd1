@@ -3,9 +3,9 @@
     ImageLocalFolder = "D:\Install"
     #disposable resource group for the environment
     ResourceGroupName = "SPinfdev"
-    ImageResourceGroupName = "sharedresources"
-    ImageStorageAccount = "sharedimages"
-    ResourceGroupLocation = "westus"
+    ImageResourceGroupName = "sharedresourceslondon"
+    ImageStorageAccount = "imageslondon"
+    ResourceGroupLocation = "uksouth"
     LocalAdminUserName = "splocaladm"
     LocalAdminPassword = "123$%^qweRTY"
 
