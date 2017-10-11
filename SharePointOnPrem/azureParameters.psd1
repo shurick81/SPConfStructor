@@ -3,8 +3,8 @@
     ImageLocalFolder = "D:\Install"
     #disposable resource group for the environment
     ResourceGroupName = "SP2016dev"
-    ImageResourceGroupName = "sharedresources"
-    ImageStorageAccount = "sharedimages"
+    ImageResourceGroupName = "sharedresourceswesteurope"
+    ImageStorageAccount = "imageswesteurope"
     ResourceGroupLocation = "westeurope"
     LocalAdminUserName = "splocaladm"
     LocalAdminPassword = "123$%^qweRTY"
