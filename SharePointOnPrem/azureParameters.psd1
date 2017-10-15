@@ -3,6 +3,7 @@
     ImageLocalFolder = "D:\Install"
     #disposable resource group for the environment
     ResourceGroupName = "SP2016dev"
+    #keep in mind that there cannot be more than one image with the same name in one resource group
     ImageResourceGroupName = "sharedresourceswesteurope"
     ImageStorageAccount = "imageswesteurope"
     ResourceGroupLocation = "westeurope"

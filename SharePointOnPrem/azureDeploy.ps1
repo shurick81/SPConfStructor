@@ -771,10 +771,13 @@ Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete 99 -id 1
 if ( $azureParameters.ShutDownAfterProvisioning )
 {
     Write-Host "$(Get-Date) Stopping all the machines"
-    $configParameters.Machines | ? { $_.Roles -notcontains "AD" } | % {
+    $configParameters.Machines | ? { ( $_.Roles -notcontains "AD" ) -and ( $_.Roles -notcontains "SQL" ) } | % {
         Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
     }
-    $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
+    $configParameters.Machines | ? { ( $_.Roles -notcontains "AD" ) -and ( $_.Roles -contains "SQL" ) } | % {
+        Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
+    }
+    $configParameters.Machines | ? { $_.Roles -contains "AD"  } | % {
         Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
     }
 } else {

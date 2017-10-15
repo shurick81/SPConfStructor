@@ -44,7 +44,18 @@ if ( $ADClientMachines )
         Write-Host "Let's wait 5 minutes to make sure that domain is up and running"
         sleep 300;
     }
-    $ADClientMachines | % {
+    $configParameters.Machines | ? { ( $_.Roles -notcontains "AD" ) -and ( $_.Roles -contains "SQL" ) } | % {
+        $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $_.Name -Status
+        $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+        if ( $powerState.DisplayStatus -ne "VM running" )
+        {
+            Write-Host "Starting $($_.Name)"
+            Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name;
+        } else {
+            Write-Host "$($_.Name) is already started"
+        }
+    }
+    $configParameters.Machines | ? { ( $_.Roles -notcontains "AD" ) -and ( $_.Roles -notcontains "SQL" ) } | % {
         $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $_.Name -Status
         $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
         if ( $powerState.DisplayStatus -ne "VM running" )
