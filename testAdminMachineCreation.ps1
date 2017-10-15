@@ -82,5 +82,5 @@ $networkInterfaceRef = $vm.NetworkProfile[0].NetworkInterfaces[0].id;
 $networkInterface = Get-AzureRmNetworkInterface | ? { $_.Id -eq $networkInterfaceRef }
 $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName | ? { $_.id -eq $networkInterface.IpConfigurations[0].PublicIpAddress.id }
 . .\Connect-Mstsc\Connect-Mstsc.ps1
-Connect-Mstsc -ComputerName $pip.IpAddress -User "\$VMUserName" -Password $VMpassword
+Connect-Mstsc -ComputerName $pip.IpAddress -User $VMUserName -Password $VMpassword
 

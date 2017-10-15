@@ -2,11 +2,10 @@
     #Where the SharePoint Image is located on your machine where you run the PowerShell script
     ImageLocalFolder = "D:\Install"
     #disposable resource group for the environment
-    ResourceGroupName = "SP2016dev"
-    #keep in mind that there cannot be more than one image with the same name in one resource group
-    ImageResourceGroupName = "sharedresourceswesteurope"
-    ImageStorageAccount = "imageswesteurope"
-    ResourceGroupLocation = "westeurope"
+    ResourceGroupName = "SPinfdev"
+    ImageResourceGroupName = "sharedresourceslondon"
+    ImageStorageAccount = "imageslondon"
+    ResourceGroupLocation = "uksouth"
     LocalAdminUserName = "splocaladm"
     LocalAdminPassword = "123$%^qweRTY"
 
@@ -38,7 +37,7 @@
     ADConfigure = $true
     JoinDomain = $true
     ConfigureSharePoint = $true
-    ShutDownAfterProvisioning = $false
+    ShutDownAfterProvisioning = $true
 
     SubnetIpAddress = "192.168.0.0"
     PauseBeforeImaging = $false

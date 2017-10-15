@@ -66,14 +66,14 @@ Configuration SPDomain
 
         xADDomain ADDomain
         {
-            DomainName                      = $configParameters.DomainName
+            DomainName                      = $DomainName
             DomainAdministratorCredential   = $ShortDomainAdminCredential
             SafemodeAdministratorPassword   = $DomainSafeModeAdministratorPasswordCredential
         }
 
         xWaitForADDomain WaitForDomain
         {
-            DomainName              = $configParameters.DomainName
+            DomainName              = $DomainName
             DomainUserCredential    = $ShortDomainAdminCredential
             RetryCount              = 100
             RetryIntervalSec        = 10
@@ -82,7 +82,7 @@ Configuration SPDomain
 
         xADUser SPInstallAccountUser
         {
-            DomainName  = $configParameters.DomainName
+            DomainName  = $DomainName
             UserName    = $SPInstallAccountCredential.GetNetworkCredential().UserName
             Password    = $SPInstallAccountCredential
             DependsOn   = "[xWaitForADDomain]WaitForDomain"
@@ -90,7 +90,7 @@ Configuration SPDomain
 
         xADUser SPFarmAccountUser
         {
-            DomainName  = $configParameters.DomainName
+            DomainName  = $DomainName
             UserName    = $SPFarmAccountCredential.GetNetworkCredential().UserName
             Password    = $SPFarmAccountCredential
             DependsOn   = "[xWaitForADDomain]WaitForDomain"
@@ -98,7 +98,7 @@ Configuration SPDomain
 
         xADUser SPWebAppPoolAccountUser
         {
-            DomainName  = $configParameters.DomainName
+            DomainName  = $DomainName
             UserName    = $SPWebAppPoolAccountCredential.GetNetworkCredential().UserName
             Password    = $SPWebAppPoolAccountCredential
             DependsOn   = "[xWaitForADDomain]WaitForDomain"
@@ -106,7 +106,7 @@ Configuration SPDomain
 
         xADUser SPServicesAccountUser
         {
-            DomainName  = $configParameters.DomainName
+            DomainName  = $DomainName
             UserName    = $SPServicesAccountCredential.GetNetworkCredential().UserName
             Password    = $SPServicesAccountCredential
             DependsOn   = "[xWaitForADDomain]WaitForDomain"
@@ -114,7 +114,7 @@ Configuration SPDomain
 
         xADUser SPSearchServiceAccountUser
         {
-            DomainName  = $configParameters.DomainName
+            DomainName  = $DomainName
             UserName    = $SPSearchServiceAccountCredential.GetNetworkCredential().UserName
             Password    = $SPSearchServiceAccountCredential
             DependsOn   = "[xWaitForADDomain]WaitForDomain"
@@ -122,7 +122,7 @@ Configuration SPDomain
 
         xADUser SPCrawlerAccountUser
         {
-            DomainName  = $configParameters.DomainName
+            DomainName  = $DomainName
             UserName    = $SPCrawlerAccountCredential.GetNetworkCredential().UserName
             Password    = $SPCrawlerAccountCredential
             DependsOn   = "[xWaitForADDomain]WaitForDomain"
@@ -130,7 +130,7 @@ Configuration SPDomain
 
         xADUser SPOCSuperUserADUser
         {
-            DomainName  = $configParameters.DomainName
+            DomainName  = $DomainName
             UserName    = $configParameters.SPOCSuperUser
             Password    = $SPOCAccountCredential
             DependsOn   = "[xWaitForADDomain]WaitForDomain"
@@ -138,7 +138,7 @@ Configuration SPDomain
 
         xADUser SPOCSuperReaderUser
         {
-            DomainName  = $configParameters.DomainName
+            DomainName  = $DomainName
             UserName    = $configParameters.SPOCSuperReader
             Password    = $SPOCAccountCredential
             DependsOn   = "[xWaitForADDomain]WaitForDomain"
@@ -146,7 +146,7 @@ Configuration SPDomain
 
         xADUser SPTestUser
         {
-            DomainName  = $configParameters.DomainName
+            DomainName  = $DomainName
             UserName    = $SPTestAccountCredential.GetNetworkCredential().UserName
             Password    = $SPTestAccountCredential
             DependsOn   = "[xWaitForADDomain]WaitForDomain"
@@ -154,7 +154,7 @@ Configuration SPDomain
 
         xADUser SPSecondTestUser
         {
-            DomainName  = $configParameters.DomainName
+            DomainName  = $DomainName
             UserName    = $SPSecondTestAccountCredential.GetNetworkCredential().UserName
             Password    = $SPSecondTestAccountCredential
             DependsOn   = "[xWaitForADDomain]WaitForDomain"

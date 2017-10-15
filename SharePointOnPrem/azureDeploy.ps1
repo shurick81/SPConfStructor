@@ -2,7 +2,7 @@
 [CmdletBinding()]
 Param(
     [Parameter(Mandatory=$False,Position=1)]
-    [string]$mainParametersFileName = "mainParemeters.psd1",
+    [string]$mainParametersFileName = "mainParameters.psd1",
 	
     [Parameter(Mandatory=$False,Position=2)]
     [string]$azureParametersFileName = "azureParameters.psd1"
@@ -175,7 +175,14 @@ $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
 
 $resourceGroupName = $azureParameters.ResourceGroupName;
 $resourceGroupLocation = $azureParameters.ResourceGroupLocation;
+$imageResourceGroupName = $azureParameters.ImageResourceGroupName;
+if ( !$imageResourceGroupName -or ( $imageResourceGroupName -eq "" ) )
+{
+    $imageResourceGroupName = $resourceGroupName;
+}
+$imageStorageAccountName = $azureParameters.ImageStorageAccount
 $vnetName = ( $resourceGroupName + "VNet");
+
 
 $subscription = $null;
 $subscription = Get-AzureRmSubscription;
@@ -193,20 +200,14 @@ if ( $azureParameters.DeleteResourceGroup )
     $resourceGroup = Get-AzureRmResourceGroup $resourceGroupName -ErrorAction Ignore;
     if ( $resourceGroup )
     {
-        $choice = $null;
-        while ( $choice -notmatch "[y|n]" ) {
-            $choice = read-host "Are you sure you want to delete $resourceGroupName resource group? (Y/N)"
-        }
-        if ( $choice -eq "y" ) {
-            Remove-AzureRmResourceGroup -Name $resourceGroupName -Force | Out-Null;
-        }
-        else { write-host "Resource group deletion is skipped by user" }
+        Remove-AzureRmResourceGroup -Name $resourceGroupName | Out-Null;
     }
 }
 
 if ( $azureParameters.PrepareResourceGroup )
 {
     Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete 1 -id 1 -CurrentOperation "Resource group promotion";
+    $resourceGroup = $null
     $resourceGroup = Get-AzureRmResourceGroup $resourceGroupName -ErrorAction Ignore;
     if ( !$resourceGroup )
     {
@@ -273,12 +274,17 @@ function CreateMachine ( $machineParameters ) {
     if ( $machineParameters.Memory -le 1.5 ) { $VMSize = "Basic_A1" } else { $VMSize = "Standard_D11_v2" }
     if ( $machineParameters.Memory -gt 14 ) { $VMSize = "Standard_D12_v2" }
     # Check SKUS: Get-AzureRmVMImageSku -Location westeurope -PublisherName MicrosoftWindowsServer -Offer WindowsServer
+    $publisherName = "MicrosoftWindowsServer"        
     $offer = "WindowsServer";
     $skusPrefix = "2016";
     if ( $machineParameters.WinVersion -eq "2012" ) { $skusPrefix = "2012" }
     if ( $machineParameters.WinVersion -eq "2012R2" ) { $skusPrefix = "2012-R2" }
     if ( $machineParameters.DiskSize -le 30 ) { $skus = "$skusPrefix-Datacenter-smalldisk" } else { $skus = "$skusPrefix-Datacenter" }
-    if ( $machineParameters.WinVersion -eq "10" ) { $offer = "Windows"; $skus = "Windows10-RS2-Pro" }
+    if ( $machineParameters.WinVersion -eq "10" ) {
+        $publisherName = "MicrosoftWindowsDesktop"        
+        $offer = "Windows-10";
+        $skus = "RS2-Pro"
+    }
     
     if ( $machineParameters.Roles -contains "AD" ) { $vmCredential = $ShortDomainAdminCredential } else { $vmCredential = $LocalAdminCredential }
 
@@ -286,7 +292,7 @@ function CreateMachine ( $machineParameters ) {
     if ( $imageParameter -and ( $imageParameter -ne "" ) )
     {
         $image = $null;
-        $image = Get-AzureRMImage -ResourceGroupName $azureParameters.ImageResourceGroupName -ImageName $machineParameters.Image;
+        $image = Get-AzureRMImage -ResourceGroupName $imageResourceGroupName | ? { ( $_.Name -eq $imageName ) -and ( $_.Location -eq $resourceGroupLocation ) }
         $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize | `
             Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
             Set-AzureRmVMSourceImage -Id $image.Id | `
@@ -294,7 +300,7 @@ function CreateMachine ( $machineParameters ) {
     } else {
         $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize | `
             Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
-            Set-AzureRmVMSourceImage -PublisherName MicrosoftWindowsServer -Offer $offer -Skus $skus -Version latest | `
+            Set-AzureRmVMSourceImage -PublisherName $publisherName -Offer $offer -Skus $skus -Version latest | `
             Add-AzureRmVMNetworkInterface -Id $nic.Id
     }
     New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
@@ -304,10 +310,10 @@ function PrepareMachine ( $machineParameters ) {
     $machineName = $machineParameters.Name;
     if ( $azureParameters.PrepareMachines )
     {
-        if ( $machineParameters.WinVersion -eq "2012" ) {
+        if ( ( $machineParameters.WinVersion -eq "2012" ) -or ( $machineParameters.WinVersion -eq "10" ) ) {
             Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 10 -ParentId 1 -CurrentOperation "Preparing Windows 2012 on $machineName";            
             $containerName = "psscripts";
-            $fileName = "Win2012Prepare.ps1"
+            $fileName = "SetExecutionPolicy.ps1"
             Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName;
             $existingStorageContainer = $null;
             $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
@@ -396,9 +402,9 @@ function PrepareMachine ( $machineParameters ) {
                 $configFileName = ".\DSC\$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
                 Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
-                if ( $azureParameters.ImageResourceGroupName -ne "" )
+                if ( $azureParameters.SPMediaSource -eq "AzureBlobImage" )
                 {
-                    $imageStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $azureParameters.ImageResourceGroupName -Name $azureParameters.ImageStorageAccount | ? { $_.KeyName -eq "key1" }
+                    $imageStorageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $imageStorageAccountName -Name $imageStorageAccountName | ? { $_.KeyName -eq "key1" }
                 } else {
                     $imageStorageAccountKey = @{ Value = "" }
                 }
@@ -468,7 +474,7 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
 
 $azurePreparationPercentage = 3;
 $numberOfMachines = $configParameters.Machines.Count
-$machinePercentage = ( 70 - $azurePreparationPercentage ) / ( $numberOfMachines )
+$machinePercentage = ( 50 - $azurePreparationPercentage ) / ( $numberOfMachines )
 
 $machineCounter = 0;
 $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name $vnetName;
@@ -483,9 +489,15 @@ $configParameters.Machines | % {
     {
         if ( !$vm )
         {
+            $imageResourceGroup = $null;
+            $imageResourceGroup = Get-AzureRmResourceGroup $imageResourceGroupName -ErrorAction SilentlyContinue;
+            if ( !$imageResourceGroup )
+            {
+                New-AzureRmResourceGroup -Name $imageResourceGroupName -Location $resourceGroupLocation | Out-Null;                
+            }
             $image = $null;
             $imageName = $_.Image
-            $image = Get-AzureRMImage -ResourceGroupName $azureParameters.ImageResourceGroupName | ? { $_.Name -eq $imageName }
+            $image = Get-AzureRMImage -ResourceGroupName $imageResourceGroupName | ? { ( $_.Name -eq $imageName ) -and ( $_.Location -eq $resourceGroupLocation ) }
             if ( !$image ) {
                 $templateMachineName = "templatemachine";
                 Write-Host "$(Get-Date) Creating $templateMachineName temporary"
@@ -522,27 +534,34 @@ $configParameters.Machines | % {
                 Write-Host "$(Get-Date) Waiting until $templateMachineName shuts down"
                 Do {
                     Sleep 3;
-                    $vm = Get-AzureRmVM -Status | ? { ( $_.ResourceGroupName -eq $resourceGroupName ) -and ( $_.Name -eq $templateMachineName ) }
-                    $vmState = $vm.PowerState;
-                } while ( $vmState -ne "VM stopped" )
+                    $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Status
+                    $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+                } while ( $powerState.DisplayStatus -ne "VM stopped" )
                 Write-Host "$(Get-Date) Deallocating $templateMachineName"
                 Stop-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null
                 Write-Host "$(Get-Date) Extracting image $templateMachineName"
                 Set-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Generalized | Out-Null
                 $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $templateMachineName;
                 $image = New-AzureRmImageConfig -Location $resourceGroupLocation -SourceVirtualMachineId $vm.ID;
-                New-AzureRmImage -Image $image -ImageName $_.Image -ResourceGroupName $azureParameters.ImageResourceGroupName | Out-Null;
+                New-AzureRmImage -Image $image -ImageName $_.Image -ResourceGroupName $imageResourceGroupName | Out-Null;
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 70 -ParentId 1 -CurrentOperation "Removing template machine $templateMachineName";
                 Write-Host "$(Get-Date) Removing template machine $templateMachineName";
                 $vm = Get-AzureRmVM $resourceGroupName $templateMachineName;
                 $diskName = $vm.StorageProfile.OsDisk.Name;
                 Remove-AzureRmVm -ResourceGroupName $resourceGroupName -Name $templateMachineName -Force | Out-Null;
-                Remove-AzureRmDisk -ResourceGroupName $resourceGroupName -Name $diskName -Force;
+                Remove-AzureRmDisk -ResourceGroupName $resourceGroupName -Name $diskName -Force | Out-Null;
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 80 -ParentId 1 -CurrentOperation "Creating $machineName machine via template";
             } else {
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 0 -ParentId 1 -CurrentOperation "Creating $machineName machine via template";
             }
             CreateMachine $_;
+        } else {
+            $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $machineName -Status
+            $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+            if ( $powerState.DisplayStatus -ne "VM running" )
+            {
+                Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $machineName;
+            }
         }
         if ( $azureParameters.PrepareMachinesAfterImage )
         {
@@ -553,6 +572,13 @@ $configParameters.Machines | % {
         {
             Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 0 -ParentId 1 -CurrentOperation "Creating $machineName machine";            
             CreateMachine $_;
+        } else {
+            $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $machineName -Status
+            $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+            if ( $powerState.DisplayStatus -ne "VM running" )
+            {
+                Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $machineName;
+            }
         }
         PrepareMachine $_;
     }
@@ -573,7 +599,7 @@ $configParameters.Machines | % {
 }
 
 #Domain deploying
-Write-Progress -Activity 'Configuring Active Directory' -PercentComplete 70 -id 1;
+Write-Progress -Activity 'Configuring Active Directory' -PercentComplete 50 -id 1;
 if ( $azureParameters.ADConfigure )
 {
     $ADMachines = $configParameters.Machines | ? { $_.Roles -contains "AD" }
@@ -603,7 +629,7 @@ if ( $azureParameters.ADConfigure )
     }
 }
 
-Write-Progress -Activity 'Joining domain' -PercentComplete 75 -id 1;
+Write-Progress -Activity 'Joining domain' -PercentComplete 55 -id 1;
 if ( $azureParameters.JoinDomain )
 {
     $firstAdVMName = $null;
@@ -636,7 +662,7 @@ if ( $azureParameters.JoinDomain )
     }
 }
 
-Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete 85 -id 1;
+Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete 65 -id 1;
 if ( $azureParameters.ConfigureSharePoint )
 {
 
@@ -665,7 +691,13 @@ if ( $azureParameters.ConfigureSharePoint )
                 SPSearchServiceAccountCredential = $SPSearchServiceAccountCredential
                 SPCrawlerAccountCredential = $SPCrawlerAccountCredential
             }
-            Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            $extensionSetting = $null;
+            $iterationCount = 0;
+            Do {
+                Write-Host "$(Get-Date) Iteration $iterationCount"
+                $extensionSetting = Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Ignore;
+                $iterationCount++;
+            } while ( !$extensionSetting -or !$extensionSetting.IsSuccessStatusCode )
         }
     }        
     if ( $SPMachineNames.Count -gt 1 )
@@ -691,7 +723,13 @@ if ( $azureParameters.ConfigureSharePoint )
                 SPCrawlerAccountCredential = $SPCrawlerAccountCredential
                 GranularApplying = $true
             }
-            Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            $extensionSetting = $null;
+            $iterationCount = 0;
+            Do {
+                Write-Host "$(Get-Date) Iteration $iterationCount"
+                $extensionSetting = Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Ignore;
+                $iterationCount++;
+            } while ( !$extensionSetting -or !$extensionSetting.IsSuccessStatusCode )
         }
 
         $SearchQueryMachines = $configParameters.Machines | ? { $_.Roles -contains "SearchQuery" }
@@ -718,19 +756,28 @@ if ( $azureParameters.ConfigureSharePoint )
             Write-Host "$(Get-Date) Deploying $configName extension on $machineName (Search granule)"
             Publish-AzureRmVMDscConfiguration $configFileName -ConfigurationDataPath $tempConfigDataFilePath -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
             Remove-Item $tempConfigDataFilePath;
-            Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            $extensionSetting = $null;
+            $iterationCount = 0;
+            Do {
+                Write-Host "$(Get-Date) Iteration $iterationCount"
+                $extensionSetting = Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Ignore;
+                $iterationCount++;
+            } while ( !$extensionSetting -or !$extensionSetting.IsSuccessStatusCode )
         }
     }
 }
 
-Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete 100 -id 1;
+Write-Progress -Activity 'Configuring SharePoint farm' -PercentComplete 99 -id 1;
 if ( $azureParameters.ShutDownAfterProvisioning )
 {
     Write-Host "$(Get-Date) Stopping all the machines"
-    $configParameters.Machines | ? { $_.Roles -notcontains "AD" } | % {
+    $configParameters.Machines | ? { ( $_.Roles -notcontains "AD" ) -and ( $_.Roles -notcontains "SQL" ) } | % {
         Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
     }
-    $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
+    $configParameters.Machines | ? { ( $_.Roles -notcontains "AD" ) -and ( $_.Roles -contains "SQL" ) } | % {
+        Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
+    }
+    $configParameters.Machines | ? { $_.Roles -contains "AD"  } | % {
         Stop-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $_.Name -Force;
     }
 } else {
@@ -738,10 +785,12 @@ if ( $azureParameters.ShutDownAfterProvisioning )
     $configParameters.Machines | % {
         $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -VMName $_.Name;
         $networkInterfaceRef = $vm.NetworkProfile[0].NetworkInterfaces[0].id;
-        $networkInterface = Get-AzureRmNetworkInterface | ? { $_.Id -eq $networkInterfaceRef }
-        $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName | ? { $_.id -eq $networkInterface.IpConfigurations[0].PublicIpAddress.id }
-        Write-Host "$($_.Name) $($pip.IpAddress)"
-        if ( $_.Roles -contains "Code" )
+        $NIName = $networkInterfaceRef.Split("/")[-1];
+        $networkInterface = Get-AzureRmNetworkInterface -ResourceGroupName $resourceGroupName -Name $NIName;
+        $PIPName = $networkInterface.IpConfigurations[0].PublicIpAddress.id.Split("/")[-1];
+        $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName -Name $PIPName;
+        Write-Host "$($_.Name) $($pip.IpAddress)";
+        if ( ( $_.Roles -contains "Code" ) -or ( $_.Roles -contains "Configuration" ) )
         {
             . .\Connect-Mstsc\Connect-Mstsc.ps1
             Connect-Mstsc -ComputerName $pip.IpAddress -User "$shortDomainName\$($configParameters.SPInstallAccountUserName)" -Password $configParameters.SPInstallAccountPassword

@@ -613,69 +613,72 @@ Configuration SPFarm
         if ( !$GranularApplying -or $SearchTopologyGranule )
         {
 
-            SPManagedAccount SharePointSearchServicePoolAccount
+            if ( $isSearchQuery )
             {
-                AccountName             = $SPSearchServiceAccountCredential.UserName
-                Account                 = $SPSearchServiceAccountCredential
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-            }
-
-            SPServiceAppPool SharePointSearchServiceAppPool
-            {
-                Name                    = "SharePoint Search App Pool"
-                ServiceAccount          = $SPSearchServiceAccountCredential.UserName
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPManagedAccount]SharePointSearchServicePoolAccount"
-            }
-
-            SPSearchServiceApp SearchServiceApp
-            {  
-                Name                    = "Search Service Application"
-                DatabaseName            = "SP_Search"
-                ApplicationPool         = "SharePoint Search App Pool"
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                DependsOn               = "[SPServiceAppPool]SharePointSearchServiceAppPool"
-            }
-
-            if ( !$GranularApplying ) {
-
-                WaitForAll AllServersJoined
+                SPManagedAccount SharePointSearchServicePoolAccount
                 {
-                    ResourceName      = '[SPFarm]Farm'
-                    NodeName          = $SearchMachines
-                    RetryIntervalSec  = 15
-                    RetryCount        = 300
-                    DependsOn         = "[SPFarm]Farm"
+                    AccountName             = $SPSearchServiceAccountCredential.UserName
+                    Account                 = $SPSearchServiceAccountCredential
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
                 }
-
-                WaitForAll FolderCreated
+    
+                SPServiceAppPool SharePointSearchServiceAppPool
                 {
-                    ResourceName      = '[File]IndexFolder'
-                    NodeName          = $SearchQueryMachines
-                    RetryIntervalSec  = 15
-                    RetryCount        = 300
-                    DependsOn         = "[File]IndexFolder"
+                    Name                    = "SharePoint Search App Pool"
+                    ServiceAccount          = $SPSearchServiceAccountCredential.UserName
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPManagedAccount]SharePointSearchServicePoolAccount"
                 }
-
-                $topologyDependsOn = @( "[WaitForAll]AllServersJoined", "[WaitForAll]FolderCreated", "[SPSearchServiceApp]SearchServiceApp" )
-            } else {
-                $topologyDependsOn = @( "[SPSearchServiceApp]SearchServiceApp" )
+    
+                SPSearchServiceApp SearchServiceApp
+                {  
+                    Name                    = "Search Service Application"
+                    DatabaseName            = "SP_Intra_Search"
+                    ApplicationPool         = "SharePoint Search App Pool"
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    DependsOn               = "[SPServiceAppPool]SharePointSearchServiceAppPool"
+                }
+    
+                if ( !$GranularApplying ) {
+    
+                    WaitForAll AllServersJoined
+                    {
+                        ResourceName      = '[SPFarm]Farm'
+                        NodeName          = $SearchMachines
+                        RetryIntervalSec  = 15
+                        RetryCount        = 300
+                        DependsOn         = "[SPFarm]Farm"
+                    }
+    
+                    WaitForAll FolderCreated
+                    {
+                        ResourceName      = '[File]IndexFolder'
+                        NodeName          = $SearchQueryMachines
+                        RetryIntervalSec  = 15
+                        RetryCount        = 300
+                        DependsOn         = "[File]IndexFolder"
+                    }
+    
+                    $topologyDependsOn = @( "[WaitForAll]AllServersJoined", "[WaitForAll]FolderCreated", "[SPSearchServiceApp]SearchServiceApp" )
+                } else {
+                    $topologyDependsOn = @( "[SPSearchServiceApp]SearchServiceApp" )
+                }
+    
+                SPSearchTopology SearchTopology
+                {
+                    ServiceAppName          = "Search Service Application"
+                    Admin                   = $SearchQueryMachines
+                    Crawler                 = $SearchCrawlerMachines
+                    ContentProcessing       = $SearchCrawlerMachines
+                    AnalyticsProcessing     = $SearchCrawlerMachines
+                    QueryProcessing         = $SearchQueryMachines
+                    PsDscRunAsCredential    = $SPInstallAccountCredential
+                    FirstPartitionDirectory = $searchIndexDirectory
+                    IndexPartition          = $SearchQueryMachines
+                    DependsOn               = $topologyDependsOn
+                }
+            
             }
-
-            SPSearchTopology SearchTopology
-            {
-                ServiceAppName          = "Search Service Application"
-                Admin                   = $SearchQueryMachines
-                Crawler                 = $SearchCrawlerMachines
-                ContentProcessing       = $SearchCrawlerMachines
-                AnalyticsProcessing     = $SearchCrawlerMachines
-                QueryProcessing         = $SearchQueryMachines
-                PsDscRunAsCredential    = $SPInstallAccountCredential
-                FirstPartitionDirectory = $searchIndexDirectory
-                IndexPartition          = $SearchQueryMachines
-                DependsOn               = $topologyDependsOn
-            }
-
         }
     }
 }

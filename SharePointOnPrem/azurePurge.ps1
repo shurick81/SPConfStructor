@@ -15,6 +15,5 @@ if ( !$subscription )
     Write-Host "||||||||||||||||||Don't worry about this error above||||||||||||||||||"
     Login-AzureRmAccount | Out-Null;
 }
-$azureParameters = Import-PowershellDataFile azureParameters.psd1;
 Remove-AzureRmResourceGroup -Name $azureParameters.ResourceGroupName -Force | Out-Null;
 Get-Date

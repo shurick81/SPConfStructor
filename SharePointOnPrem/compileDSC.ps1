@@ -3,7 +3,7 @@
 [CmdletBinding()]
 Param(
     [Parameter(Mandatory=$False,Position=1)]
-    [string]$mainParametersFileName = "mainParemeters.psd1",
+    [string]$mainParametersFileName = "mainParameters.psd1",
 	
     [Parameter(Mandatory=$False,Position=2)]
     [string]$azureParametersFileName = "azureParameters.psd1"
