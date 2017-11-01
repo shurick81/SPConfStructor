@@ -232,6 +232,8 @@ if ( $azureParameters.PrepareResourceGroup )
             -SkuName "Standard_LRS" -Kind "Storage" | Out-Null;
     }    
 }
+$vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name $vnetName;
+$subnetId = $vnet.Subnets[0].Id;
 $storageAccounts = Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName
 $storageAccountName = $storageAccounts[0].StorageAccountName;
 
@@ -474,12 +476,13 @@ if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016
 
 $azurePreparationPercentage = 3;
 $numberOfMachines = $configParameters.Machines.Count
-$machinePercentage = ( 50 - $azurePreparationPercentage ) / ( $numberOfMachines )
+$imagesPreparationPercentage = 22;
+$machinesPreparationPercentage = 25;
+$machinePercentage = $imagesPreparationPercentage / $numberOfMachines
 
 $machineCounter = 0;
-$vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $resourceGroupName -Name $vnetName;
-$subnetId = $vnet.Subnets[0].Id;
 
+#preparing images
 $configParameters.Machines | % {
     $machineName = $_.Name;
     Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete ( $azurePreparationPercentage + $machineCounter * $machinePercentage ) -id 1 -CurrentOperation "Preparing $machineName machine" ;
@@ -554,6 +557,48 @@ $configParameters.Machines | % {
             } else {
                 Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 0 -ParentId 1 -CurrentOperation "Creating $machineName machine via template";
             }
+            CreateMachine $_;
+        } else {
+            $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $machineName -Status
+            $powerState = $vm.Statuses | ? { $_.Code -like "PowerState/*" }
+            if ( $powerState.DisplayStatus -ne "VM running" )
+            {
+                Start-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -Name $machineName;
+            }
+        }
+        if ( $azureParameters.PrepareMachinesAfterImage )
+        {
+            PrepareMachine $_;
+        }
+    }
+    $machineCounter++;
+}
+
+$machinesPreparationPercentage = 25;
+$machinePercentage = $machinesPreparationPercentage / $numberOfMachines
+
+$machineCounter = 0;
+
+#Creating machines
+$configParameters.Machines | % {
+    $machineName = $_.Name;
+    Write-Progress -Activity 'Deploying SharePoint farm in Azure' -PercentComplete ( $azurePreparationPercentage + $machinesPreparationPercentage + $machineCounter * $machinePercentage ) -id 1 -CurrentOperation "Preparing $machineName machine" ;
+    $vm = $null;
+    $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $machineName -ErrorAction Ignore;
+    if ( $_.Image -and ( $_.Image -ne "" ) )
+    {
+        if ( !$vm )
+        {
+            $imageResourceGroup = $null;
+            $imageResourceGroup = Get-AzureRmResourceGroup $imageResourceGroupName -ErrorAction SilentlyContinue;
+            if ( !$imageResourceGroup )
+            {
+                New-AzureRmResourceGroup -Name $imageResourceGroupName -Location $resourceGroupLocation | Out-Null;                
+            }
+            $image = $null;
+            $imageName = $_.Image
+            $image = Get-AzureRMImage -ResourceGroupName $imageResourceGroupName | ? { ( $_.Name -eq $imageName ) -and ( $_.Location -eq $resourceGroupLocation ) }
+            Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 0 -ParentId 1 -CurrentOperation "Creating $machineName machine via template";
             CreateMachine $_;
         } else {
             $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -Name $machineName -Status
