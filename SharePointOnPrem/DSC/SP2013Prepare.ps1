@@ -19,7 +19,7 @@ Configuration SP2013Prepare
          
         Registry LoopBackRegistry
         {
-            Ensure      = "Present"  # You can also set Ensure to "Absent"
+            Ensure      = "Present"
             Key         = "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa"
             ValueName   = "DisableLoopbackCheck"
             ValueType   = "DWORD"

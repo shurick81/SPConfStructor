@@ -2,7 +2,7 @@
     #Where the SharePoint Image is located on your machine where you run the PowerShell script
     ImageLocalFolder = "D:\Install"
     #disposable resource group for the environment
-    ResourceGroupName = "SP2016dev"
+    ResourceGroupName = "SPConfStructorDev"
     #keep in mind that there cannot be more than one image with the same name in one resource group
     ImageResourceGroupName = "sharedresourceswesteurope"
     ImageStorageAccount = "imageswesteurope"
@@ -35,19 +35,21 @@
     SPInstall = $true
     CodeToolsInstallation = $true
     ConfigurationToolsInstallation = $true
+    OfficeToolsInstallation = $true
     ADConfigure = $true
     JoinDomain = $true
     ConfigureSharePoint = $true
+    UserToolsProvisioning = $true
     ShutDownAfterProvisioning = $false
 
     SubnetIpAddress = "192.168.0.0"
     PauseBeforeImaging = $false
 
-    #not in use:
-    AzureMachineSizes = @(
-        @{ MinMemory = 0; Size = "Basic_A1" },
-        @{ MinMemory = 1.75; Size = "Basic_A2" },
-        @{ MinMemory = 3.5; Size = "Standard_D11_v2" },
-        @{ MinMemory = 15; Size = "Standard_D12_v2" }
+    DefaultMachineSize = "Basic_A1"
+    MachineSizes = @(
+        @{ MinMemory = 1.8; Size = "Standard_DS1_v2" }
+        @{ MinMemory = 3.6; Size = "Standard_DS2_v2" }
+        @{ MinMemory = 8; Size = "Standard_DS11_v2" }
+        @{ MinMemory = 15; Size = "Standard_DS12_v2" }
     )
 }

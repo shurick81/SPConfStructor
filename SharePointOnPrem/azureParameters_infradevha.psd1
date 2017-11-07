@@ -34,19 +34,21 @@
     SPInstall = $true
     CodeToolsInstallation = $true
     ConfigurationToolsInstallation = $true
+    OfficeToolsInstallation = $true
     ADConfigure = $true
     JoinDomain = $true
     ConfigureSharePoint = $true
+    UserToolsProvisioning = $true
     ShutDownAfterProvisioning = $true
 
     SubnetIpAddress = "192.168.0.0"
     PauseBeforeImaging = $false
 
-    #not in use:
-    AzureMachineSizes = @(
-        @{ MinMemory = 0; Size = "Basic_A1" },
-        @{ MinMemory = 1.75; Size = "Basic_A2" },
-        @{ MinMemory = 3.5; Size = "Standard_D11_v2" },
-        @{ MinMemory = 15; Size = "Standard_D12_v2" }
+    DefaultMachineSize = "Basic_A1"
+    MachineSizes = @(
+        @{ MinMemory = 1.8; Size = "Standard_DS1_v2" }
+        @{ MinMemory = 3.6; Size = "Standard_DS2_v2" }
+        @{ MinMemory = 8; Size = "Standard_DS11_v2" }
+        @{ MinMemory = 15; Size = "Standard_DS12_v2" }
     )
 }

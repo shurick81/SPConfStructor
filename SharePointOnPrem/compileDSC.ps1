@@ -231,22 +231,35 @@ $configParameters.Machines | ? { $_.Roles -contains "SharePoint" } | % {
     SPInstall -OutputPath .\dscoutput\SPInstall -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary;
 }
 
-#compiling configuration machines provisioning
-$configParameters.Machines | ? { $_.Roles -contains "Configuration" } | % {
-    $configurationData = @{ AllNodes = @(
-        @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
-    ) }
-    . .\DSC\SPConfigurationTools.ps1
-    SPConfigurationTools -OutputPath .\dscoutput\SPConfigurationTools -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary
-}
-
 #compiling coding machines provisioning
 $configParameters.Machines | ? { $_.Roles -contains "Code" } | % {
     $configurationData = @{ AllNodes = @(
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
     ) }
     . .\DSC\SPCodeTools.ps1
-    SPCodeTools -OutputPath .\dscoutput\SPCodeTools -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary
+    SPCodeTools -OutputPath .\dscoutput\SPCodeTools -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary -UserCredential $localAdminCredential;
+    . .\DSC\SPCodeToolsUser.ps1
+    SPCodeToolsUser -OutputPath .\dscoutput\SPCodeTools -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary -UserCredential $SPInstallAccountCredential;
+}
+
+#compiling configuration machines provisioning
+$configParameters.Machines | ? { $_.Roles -contains "Configuration" } | % {
+    $configurationData = @{ AllNodes = @(
+        @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
+    ) }
+    . .\DSC\SPConfigurationTools.ps1
+    SPConfigurationTools -OutputPath .\dscoutput\SPConfigurationTools -ConfigurationData $configurationData -ConfigParameters $configParameters -CommonDictionary $commonDictionary -UserCredential $localAdminCredential;
+}
+
+#compiling office machines provisioning
+$configParameters.Machines | ? { $_.Roles -contains "Office" } | % {
+    $configurationData = @{ AllNodes = @(
+        @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }
+    ) }
+    . .\DSC\SPOfficeTools.ps1
+    SPOfficeTools -OutputPath .\dscoutput\SPConfigurationTools -ConfigurationData $configurationData -ConfigParameters $configParameters -UserCredential $localAdminCredential;
+    . .\DSC\SPOfficeToolsUser.ps1
+    SPOfficeToolsUser -OutputPath .\dscoutput\SPConfigurationTools -ConfigurationData $configurationData -ConfigParameters $configParameters -UserCredential $SPInstallAccountCredential;
 }
 
 #compiling domain machine adding
@@ -254,10 +267,6 @@ $firstAdVMName = $null;
 $configParameters.Machines | ? { $_.Roles -contains "AD" } | % {
     if ( !$firstAdVMName ) { $firstAdVMName = $_.Name }
 }
-$vm = Get-AzureRmVM -ResourceGroupName $azureParameters.ResourceGroupName -VMName $firstAdVMName;
-$networkInterfaceRef = $vm.NetworkProfile[0].NetworkInterfaces[0].id;
-$networkInterface = Get-AzureRmNetworkInterface | ? { $_.Id -eq $networkInterfaceRef }
-$azureParameters.DomainControllerIP = $networkInterface.IpConfigurations[0].PrivateIpAddress 
 $configParameters.Machines | ? { !( $_.Roles -contains "AD" ) } | % {
     $configurationData = @{ AllNodes = @(
         @{ NodeName = $_.Name; PSDscAllowPlainTextPassword = $True }

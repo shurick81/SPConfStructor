@@ -8,5 +8,3 @@ Advantages:
 
 
 For the quickest introduction, check out https://github.com/shurick81/SPConfStructor/wiki/SPConfStructor-SharePoint-on-Premises-Quick-Start.
-
-

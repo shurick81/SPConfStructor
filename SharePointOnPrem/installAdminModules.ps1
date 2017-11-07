@@ -20,3 +20,4 @@ Install-Module -Name xWindowsUpdate -Force
 Install-Module -Name xCredSSP -Force
 Install-Module -Name SharePointDSC -Force
 Install-Module -Name xWebAdministration -Force
+Install-Module -Name cChoco -Force

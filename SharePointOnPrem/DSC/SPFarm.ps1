@@ -598,17 +598,17 @@ Configuration SPFarm
                 }
 
             }
-            #this needs to be troubleshooted
+
             Registry LocalZone
             {
                 Ensure                  = "Present"
-                Key                     = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\$DomainName\sp2016entdev"
-                ValueName               = "HTTP"
-                ValueType               = "DWORD"
+                Key                     = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\$SPSiteCollectionHostName"
+                ValueName               = "http"
+                ValueType               = "DWord"
                 ValueData               = "1"
                 PsDscRunAsCredential    = $SPInstallAccountCredential
             }
-
+            
         }
         if ( !$GranularApplying -or $SearchTopologyGranule )
         {

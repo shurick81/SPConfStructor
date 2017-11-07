@@ -2,7 +2,11 @@ Configuration SPConfigurationTools
 {
     param(
         $configParameters,
-        $commonDictionary
+        $commonDictionary,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullorEmpty()]
+        [PSCredential]
+        $UserCredential
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -10,7 +14,8 @@ Configuration SPConfigurationTools
     Import-DsCResource -Module xWindowsUpdate -Name xHotfix
     Import-DscResource -ModuleName xPendingReboot
     Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile
-
+    Import-DscResource -ModuleName cChoco
+    
     $SSMSVersion = $configParameters.SSMSVersion;
     $SSMSUrl = $commonDictionary.SSMSVersions[$SSMSVersion].Url;
     $SSMSProductId = $commonDictionary.SSMSVersions[$SSMSVersion].ProductId;
@@ -30,7 +35,7 @@ Configuration SPConfigurationTools
          
         Registry LoopBackRegistry
         {
-            Ensure      = "Present"  # You can also set Ensure to "Absent"
+            Ensure      = "Present"
             Key         = "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa"
             ValueName   = "DisableLoopbackCheck"
             ValueType   = "DWORD"
@@ -66,6 +71,19 @@ Configuration SPConfigurationTools
             Ensure                  = 'Present'
             IncludeAllSubFeature    = $true
         } 
+
+        cChocoInstaller installChoco        
+        {
+            InstallDir              = "c:\choco"
+            PsDscRunAsCredential    = $UserCredential
+        }
+
+        cChocoPackageInstaller installulsviewer
+        {
+            Name                    = "ulsviewer"
+            DependsOn               = "[cChocoInstaller]installChoco"
+            PsDscRunAsCredential    = $UserCredential
+        }
 
     }
 }

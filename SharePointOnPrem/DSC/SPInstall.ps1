@@ -31,6 +31,15 @@ Configuration SPInstall
             RebootNodeIfNeeded = $true;
         }
         
+        Registry LoopBackRegistry
+        {
+            Ensure      = "Present"
+            Key         = "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa"
+            ValueName   = "DisableLoopbackCheck"
+            ValueType   = "DWORD"
+            ValueData   = "1"
+        }
+
         File LogFolder
         {
             Type            = "Directory"

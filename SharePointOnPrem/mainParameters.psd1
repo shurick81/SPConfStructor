@@ -13,18 +13,18 @@
         @{
             Name = "SP2016dev01ad01"
             Roles = "AD"
-            Memory = 1.5
+            Memory = 3
             DiskSize = 30
             WinVersion = "2016"
-            Image = ""
+            Image = "Win2016ADV001"
         }
         @{
             Name = "SP2016dev01sp01"
-            Roles = "SQL", "SharePoint", "SingleServerFarm", "Code", "Configuration"
+            Roles = "SQL", "SharePoint", "SingleServerFarm", "Code", "Configuration", "Office"
             Memory = 14
             DiskSize = 120
             WinVersion = "2016"
-            Image = ""
+            Image = "Win2016SQL2017StSP2016CU201710EnRuSwNoCodeConfOfficeV001"
         }
     )
     SPSiteCollectionHostName = "SP2016dev01sp01.westeurope.cloudapp.azure.com"

@@ -223,6 +223,7 @@ if ( $azureParameters.PrepareResourceGroup )
     }
     $subnetId = $vnet.Subnets[0].Id;
 
+    $storageAccounts = $null;
     $storageAccounts = Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName -ErrorAction Ignore;
     if ( !$storageAccounts )
     {
@@ -273,8 +274,10 @@ function CreateMachine ( $machineParameters ) {
     }
 
     #Check machine sizes: Get-AzureRmVMSize -Location westeurope
-    if ( $machineParameters.Memory -le 1.5 ) { $VMSize = "Basic_A1" } else { $VMSize = "Standard_D11_v2" }
-    if ( $machineParameters.Memory -gt 14 ) { $VMSize = "Standard_D12_v2" }
+    $VMSize = $azureParameters.DefaultMachineSize;
+    $azureParameters.MachineSizes | % {
+        if ( $machineParameters.Memory -ge $_.MinMemory ) { $VMSize = $_.Size }
+    }
     # Check SKUS: Get-AzureRmVMImageSku -Location westeurope -PublisherName MicrosoftWindowsServer -Offer WindowsServer
     $publisherName = "MicrosoftWindowsServer"        
     $offer = "WindowsServer";
@@ -448,6 +451,7 @@ function PrepareMachine ( $machineParameters ) {
                 $configurationArguments = @{
                     ConfigParameters = $configParameters
                     CommonDictionary = $commonDictionary
+                    UserCredential = $LocalAdminCredential
                 }
                 Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
@@ -456,7 +460,7 @@ function PrepareMachine ( $machineParameters ) {
         {
             if ( $azureParameters.ConfigurationToolsInstallation )
             {
-                Write-Progress -Activity 'Configuration tools installing' -PercentComplete 58 -CurrentOperation $machineName -ParentId 1;
+                Write-Progress -Activity 'Configuration tools installing' -PercentComplete 85 -CurrentOperation $machineName -ParentId 1;
                 $configName = "SPConfigurationTools"
                 $configFileName = ".\DSC\$configName.ps1";
                 Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
@@ -464,6 +468,23 @@ function PrepareMachine ( $machineParameters ) {
                 $configurationArguments = @{
                     ConfigParameters = $configParameters
                     CommonDictionary = $commonDictionary
+                    UserCredential = $LocalAdminCredential
+                }
+                Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            }
+        }
+        if ( $machineParameters.Roles -contains "Office" )
+        {
+            if ( $azureParameters.OfficeToolsInstallation )
+            {
+                Write-Progress -Activity 'User Apps installing' -PercentComplete 92 -CurrentOperation $machineName -ParentId 1;
+                $configName = "SPOfficeTools"
+                $configFileName = ".\DSC\$configName.ps1";
+                Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+                Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
+                $configurationArguments = @{
+                    ConfigParameters = $configParameters
+                    UserCredential = $LocalAdminCredential
                 }
                 Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
             }
@@ -504,7 +525,7 @@ $configParameters.Machines | % {
             $templateMachineParameters = @{
                 Name = $templateMachineName
                 Roles = $_.Roles
-                Memory = $_.Memory
+                Memory = 5
                 DiskSize = $_.DiskSize
                 WinVersion = $_.WinVersion
             }
@@ -518,6 +539,7 @@ $configParameters.Machines | % {
             }
             Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 60 -ParentId 1 -CurrentOperation "Extracting image from template VM $templateMachineName";
             Write-Host "$(Get-Date) Removing DSC extension from $templateMachineName"
+            Sleep 10;
             Remove-AzureRmVMDscExtension -ResourceGroupName $resourceGroupName -VMName $templateMachineName;
             Write-Host "$(Get-Date) Deploying sysprep extension on $templateMachineName"
             $containerName = "psscripts";
@@ -790,6 +812,49 @@ if ( $azureParameters.ConfigureSharePoint )
                 $extensionSetting = Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Ignore;
                 $iterationCount++;
             } while ( !$extensionSetting -or !$extensionSetting.IsSuccessStatusCode )
+        }
+    }
+}
+
+#User Tools Deployment
+Write-Progress -Activity 'User Tools Installation' -PercentComplete 55 -id 1;
+if ( $azureParameters.UserToolsProvisioning )
+{
+    $configParameters.Machines | % {
+        $machineName = $_.Name;
+        if ( $_.Roles -contains "Code" )
+        {
+            if ( $azureParameters.CodeToolsInstallation )
+            {
+                Write-Progress -Activity 'Code tools installing' -PercentComplete 55 -CurrentOperation $machineName -ParentId 1;
+                $configName = "SPCodeToolsUser"
+                $configFileName = ".\DSC\$configName.ps1";
+                Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+                Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
+                $configurationArguments = @{
+                    ConfigParameters = $configParameters
+                    CommonDictionary = $commonDictionary
+                    UserCredential = $SPInstallAccountCredential
+                }
+                Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            }
+        }
+        if ( $_.Roles -contains "Office" )
+        {
+            if ( $azureParameters.OfficeToolsInstallation )
+            {
+                Write-Progress -Activity 'Office tools installing' -PercentComplete 55 -CurrentOperation $machineName -ParentId 1;
+                $configName = "SPOfficeToolsUser"
+                $configFileName = ".\DSC\$configName.ps1";
+                Write-Host "$(Get-Date) Deploying $configName extension on $machineName"
+                Publish-AzureRmVMDscConfiguration $configFileName -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName -Force | Out-Null;
+                $configurationArguments = @{
+                    ConfigParameters = $configParameters
+                    CommonDictionary = $commonDictionary
+                    UserCredential = $SPInstallAccountCredential
+                }
+                Set-AzureRmVmDscExtension -Version 2.71 -ResourceGroupName $resourceGroupName -VMName $machineName -ArchiveStorageAccountName $storageAccountName -ArchiveBlobName "$configName.ps1.zip" -AutoUpdate:$true -ConfigurationName $configName -Verbose -Force -ConfigurationArgument $configurationArguments -ErrorAction Inquire;
+            }
         }
     }
 }
