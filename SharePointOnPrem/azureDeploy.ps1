@@ -319,7 +319,7 @@ function PrepareMachine ( $machineParameters ) {
             Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 10 -ParentId 1 -CurrentOperation "Preparing Windows 2012 on $machineName";            
             $containerName = "psscripts";
             $fileName = "SetExecutionPolicy.ps1"
-            Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName;
+            Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName | Out-Null;
             $existingStorageContainer = $null;
             $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
             if ( !$existingStorageContainer )
