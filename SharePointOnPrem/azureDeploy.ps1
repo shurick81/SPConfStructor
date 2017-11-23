@@ -350,6 +350,21 @@ function PrepareMachine ( $machineParameters ) {
             Set-AzureRmVMCustomScriptExtension -VM $machineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName;
             Remove-AzureRmVMCustomScriptExtension -ResourceGroupName $resourceGroupName -VMName $machineName -Name $fileName -Force | Out-Null;
         }
+        if ( $machineParameters.DataDisks ) {
+            Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 13 -ParentId 1 -CurrentOperation "Preparing Windows 2012 on $machineName";            
+            $containerName = "psscripts";
+            $fileName = "initializedisks.ps1"
+            Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName | Out-Null;
+            $existingStorageContainer = $null;
+            $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
+            if ( !$existingStorageContainer )
+            {
+                New-AzureStorageContainer -Name $containerName -Permission Off | Out-Null;
+            }
+            Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force | Out-Null;
+            Set-AzureRmVMCustomScriptExtension -VM $machineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName;
+            Remove-AzureRmVMCustomScriptExtension -ResourceGroupName $resourceGroupName -VMName $machineName -Name $fileName -Force | Out-Null;
+        }
         if ( $machineParameters.Roles -contains "AD" )
         {
             Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 15 -ParentId 1 -CurrentOperation "Installing AD role on $machineName";            
