@@ -1,6 +1,5 @@
 @{
     Machines = @(
-        <#
         @{
             Name = "SP16infrdev1ad1"
             Roles = "AD"
@@ -9,7 +8,6 @@
             WinVersion = "2016"
             Image = "Win2016ADV001"
         }
-        #>
         @{
             Name = "SP16infrdev1sq1"
             Roles = "SQL"
@@ -19,7 +17,6 @@
             WinVersion = "2016"
             Image = ""
         }
-        <#
         @{
             Name = "SP16infrdev1sp1"
             Roles = "SharePoint", "WFE", "DistributedCache"
@@ -52,6 +49,5 @@
             WinVersion = "10"
             Image = "Win10Conf"
         }
-        #>
     )
 }
