@@ -65,8 +65,4 @@
     SSMSVersion = "17.2"
     SPLogFolder = "C:\SPLogs"
     VSVersion = "Professional"
-
-    SPLanguage = "English" #don't use
-    SPServicePack = "SP1" #don't use
-    SPMultitenancy = $false #don't use
 }
