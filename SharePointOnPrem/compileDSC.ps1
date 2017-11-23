@@ -1,16 +1,29 @@
-# script for compiling mof files on your development machine
-
 [CmdletBinding()]
 Param(
     [Parameter(Mandatory=$False,Position=1)]
-    [string]$mainParametersFileName = "mainParameters.psd1",
+    [string]$mainParametersFileName,
 	
     [Parameter(Mandatory=$False,Position=2)]
-    [string]$azureParametersFileName = "azureParameters.psd1"
+    [string]$azureParametersFileName
 )
 
-$configParameters = Import-PowershellDataFile $mainParametersFileName;
-$azureParameters = Import-PowershellDataFile $azureParametersFileName;
+Get-Date
+$defaultMainParameters = Import-PowershellDataFile "mainParameters.psd1";
+if ( $MainParametersFileName )
+{
+    $difMainParameters = Import-PowershellDataFile $MainParametersFileName;
+    $configParameters = .\combineparameters.ps1 $defaultMainParameters, $difMainParameters
+} else {
+    $configParameters = $defaultMainParameters; 
+}
+$defaultAzureParameters = Import-PowershellDataFile "azureParameters.psd1";
+if ( $systemParametersFileName )
+{
+    $difAzureParameters = Import-PowershellDataFile $azureParametersFileName;
+    $azureParameters = .\combineparameters.ps1 $defaultAzureParameters, $difAzureParameters;
+} else {
+    $azureParameters = $defaultAzureParameters;
+}
 $commonDictionary = Import-PowershellDataFile commonDictionary.psd1;
 
 $DomainName = $configParameters.DomainName;

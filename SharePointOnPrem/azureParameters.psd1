@@ -3,6 +3,7 @@
     ImageLocalFolder = "D:\Install"
     #disposable resource group for the environment
     ResourceGroupName = "SPConfStructorDev"
+    DiskStorageAccount = "standarddisks"
     #keep in mind that there cannot be more than one image with the same name in one resource group
     ImageResourceGroupName = "sharedresourceswesteurope"
     ImageStorageAccount = "imageswesteurope"
@@ -52,4 +53,5 @@
         @{ MinMemory = 8; Size = "Standard_DS11_v2" }
         @{ MinMemory = 15; Size = "Standard_DS12_v2" }
     )
+    VMStorageAccountType = "StandardLRS"
 }

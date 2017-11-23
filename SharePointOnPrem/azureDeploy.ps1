@@ -1,17 +1,29 @@
-
 [CmdletBinding()]
 Param(
     [Parameter(Mandatory=$False,Position=1)]
-    [string]$mainParametersFileName = "mainParameters.psd1",
+    [string]$mainParametersFileName,
 	
     [Parameter(Mandatory=$False,Position=2)]
-    [string]$azureParametersFileName = "azureParameters.psd1"
+    [string]$azureParametersFileName
 )
 
-
 Get-Date
-$configParameters = Import-PowershellDataFile $mainParametersFileName;
-$azureParameters = Import-PowershellDataFile $azureParametersFileName;
+$defaultMainParameters = Import-PowershellDataFile "mainParameters.psd1";
+if ( $MainParametersFileName )
+{
+    $difMainParameters = Import-PowershellDataFile $MainParametersFileName;
+    $configParameters = .\combineparameters.ps1 $defaultMainParameters, $difMainParameters
+} else {
+    $configParameters = $defaultMainParameters; 
+}
+$defaultAzureParameters = Import-PowershellDataFile "azureParameters.psd1";
+if ( $systemParametersFileName )
+{
+    $difAzureParameters = Import-PowershellDataFile $azureParametersFileName;
+    $azureParameters = .\combineparameters.ps1 $defaultAzureParameters, $difAzureParameters;
+} else {
+    $azureParameters = $defaultAzureParameters;
+}
 $commonDictionary = Import-PowershellDataFile commonDictionary.psd1;
 
 $DomainName = $configParameters.DomainName;
@@ -180,7 +192,8 @@ if ( !$imageResourceGroupName -or ( $imageResourceGroupName -eq "" ) )
 {
     $imageResourceGroupName = $resourceGroupName;
 }
-$imageStorageAccountName = $azureParameters.ImageStorageAccount
+$imageStorageAccountName = $azureParameters.ImageStorageAccount;
+$vmStorageAccountType = $azureParameters.VMStorageAccountType;
 $vnetName = ( $resourceGroupName + "VNet");
 
 
@@ -301,12 +314,19 @@ function CreateMachine ( $machineParameters ) {
         $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize | `
             Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
             Set-AzureRmVMSourceImage -Id $image.Id | `
+            Set-AzureRmVMOSDisk -CreateOption FromImage -StorageAccountType $vmStorageAccountType | `
             Add-AzureRmVMNetworkInterface -Id $nic.Id
     } else {
         $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize | `
             Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
             Set-AzureRmVMSourceImage -PublisherName $publisherName -Offer $offer -Skus $skus -Version latest | `
+            Set-AzureRmVMOSDisk -CreateOption FromImage -StorageAccountType $vmStorageAccountType | `
             Add-AzureRmVMNetworkInterface -Id $nic.Id
+        $lun = 0
+        $machineParameters.DataDisks | % {
+            $vmConfig = Add-AzureRmVMDataDisk -CreateOption Empty -Lun $lun -VM $vmConfig -DiskSizeInGB $_ -StorageAccountType $vmStorageAccountType;
+            $lun++;
+        }
     }
     New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
 }
@@ -319,6 +339,21 @@ function PrepareMachine ( $machineParameters ) {
             Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 10 -ParentId 1 -CurrentOperation "Preparing Windows 2012 on $machineName";            
             $containerName = "psscripts";
             $fileName = "SetExecutionPolicy.ps1"
+            Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName | Out-Null;
+            $existingStorageContainer = $null;
+            $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;
+            if ( !$existingStorageContainer )
+            {
+                New-AzureStorageContainer -Name $containerName -Permission Off | Out-Null;
+            }
+            Set-AzureStorageBlobContent -Container $containerName -File $fileName -Force | Out-Null;
+            Set-AzureRmVMCustomScriptExtension -VM $machineName -ContainerName $containerName -FileName $fileName -Name $fileName -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -StorageAccountName $storageAccountName;
+            Remove-AzureRmVMCustomScriptExtension -ResourceGroupName $resourceGroupName -VMName $machineName -Name $fileName -Force | Out-Null;
+        }
+        if ( $machineParameters.DataDisks ) {
+            Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 13 -ParentId 1 -CurrentOperation "Preparing Windows 2012 on $machineName";            
+            $containerName = "psscripts";
+            $fileName = "initializedisks.ps1"
             Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName | Out-Null;
             $existingStorageContainer = $null;
             $existingStorageContainer = Get-AzureStorageContainer $containerName -ErrorAction SilentlyContinue;

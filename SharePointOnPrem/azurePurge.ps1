@@ -1,11 +1,19 @@
 [CmdletBinding()]
 Param(
     [Parameter(Mandatory=$False,Position=2)]
-    [string]$azureParametersFileName = "azureParameters.psd1"
+    [string]$azureParametersFileName
 )
 
 Get-Date
-$azureParameters = Import-PowershellDataFile $azureParametersFileName;
+$defaultAzureParameters = Import-PowershellDataFile "azureParameters.psd1";
+if ( $systemParametersFileName )
+{
+    $difAzureParameters = Import-PowershellDataFile $azureParametersFileName;
+    $azureParameters = .\combineparameters.ps1 $defaultAzureParameters, $difAzureParameters;
+} else {
+    $azureParameters = $defaultAzureParameters;
+}
+
 $subscription = $null;
 $subscription = Get-AzureRmSubscription;
 if ( !$subscription )
