@@ -7,7 +7,7 @@ Param(
 
 Get-Date
 $defaultAzureParameters = Import-PowershellDataFile "azureParameters.psd1";
-if ( $systemParametersFileName )
+if ( $azureParametersFileName )
 {
     $difAzureParameters = Import-PowershellDataFile $azureParametersFileName;
     $azureParameters = .\combineparameters.ps1 $defaultAzureParameters, $difAzureParameters;
