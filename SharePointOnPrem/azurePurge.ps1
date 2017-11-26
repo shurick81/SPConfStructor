@@ -1,6 +1,6 @@
 [CmdletBinding()]
 Param(
-    [Parameter(Mandatory=$False,Position=2)]
+    [Parameter(Mandatory=$False,Position=1)]
     [string]$azureParametersFileName
 )
 
