@@ -322,10 +322,13 @@ function CreateMachine ( $machineParameters ) {
             Set-AzureRmVMSourceImage -PublisherName $publisherName -Offer $offer -Skus $skus -Version latest | `
             Set-AzureRmVMOSDisk -CreateOption FromImage -StorageAccountType $vmStorageAccountType | `
             Add-AzureRmVMNetworkInterface -Id $nic.Id
-        $lun = 0
-        $machineParameters.DataDisks | % {
-            $vmConfig = Add-AzureRmVMDataDisk -CreateOption Empty -Lun $lun -VM $vmConfig -DiskSizeInGB $_ -StorageAccountType $vmStorageAccountType;
-            $lun++;
+        if ( $machineParameters.DataDisks )
+        {
+            $lun = 0
+            $machineParameters.DataDisks | % {
+                $vmConfig = Add-AzureRmVMDataDisk -CreateOption Empty -Lun $lun -VM $vmConfig -DiskSizeInGB $_ -StorageAccountType $vmStorageAccountType;
+                $lun++;
+            }
         }
     }
     New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
