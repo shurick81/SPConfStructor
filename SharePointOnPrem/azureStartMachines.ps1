@@ -81,11 +81,13 @@ if ( $ADClientMachines )
     }
 }
 $configParameters.Machines | % {
+    $vm = $null;
     $vm = Get-AzureRmVM -ResourceGroupName $resourceGroupName -VMName $_.Name;
     $networkInterfaceRef = $vm.NetworkProfile[0].NetworkInterfaces[0].id;
     $NIName = $networkInterfaceRef.Split("/")[-1];
     $networkInterface = Get-AzureRmNetworkInterface -ResourceGroupName $resourceGroupName -Name $NIName;
     $PIPName = $networkInterface.IpConfigurations[0].PublicIpAddress.id.Split("/")[-1];
+    $pip = $null;
     $pip = Get-AzureRmPublicIpAddress -ResourceGroupName $resourceGroupName -Name $PIPName;
     Write-Host "$($_.Name) $($pip.IpAddress)";
     if ( ( $_.Roles -contains "Code" ) -or ( $_.Roles -contains "Configuration" ) )
