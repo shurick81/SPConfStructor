@@ -14,7 +14,7 @@ Configuration SPLoadingInstallationFiles
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile
+    Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile -ModuleVersion 8.0.0.0
     Import-DscResource -ModuleName cAzureStorage
     Import-DscResource -ModuleName xStorage
 

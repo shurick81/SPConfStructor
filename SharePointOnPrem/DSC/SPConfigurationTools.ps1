@@ -10,11 +10,11 @@ Configuration SPConfigurationTools
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DSCResource -Module xSystemSecurity -Name xIEEsc
-    Import-DsCResource -Module xWindowsUpdate -Name xHotfix
-    Import-DscResource -ModuleName xPendingReboot
-    Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile
-    Import-DscResource -ModuleName cChoco
+    Import-DSCResource -Module xSystemSecurity -Name xIEEsc -ModuleVersion 1.2.0.0
+    Import-DsCResource -Module xWindowsUpdate -Name xHotfix -ModuleVersion 2.7.0.0
+    Import-DscResource -ModuleName xPendingReboot -ModuleVersion 0.3.0.0
+    Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile -ModuleVersion 8.0.0.0
+    Import-DscResource -ModuleName cChoco -ModuleVersion 2.3.1.0
     
     $SSMSVersion = $configParameters.SSMSVersion;
     $SSMSUrl = $commonDictionary.SSMSVersions[$SSMSVersion].Url;

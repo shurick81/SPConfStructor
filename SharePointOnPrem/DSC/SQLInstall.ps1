@@ -14,10 +14,10 @@ Configuration SQLInstall
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DSCResource -ModuleName xNetworking
-    Import-DsCResource -Module xWindowsUpdate -Name xHotfix
-    Import-DscResource -ModuleName xPendingReboot
-    Import-DSCResource -ModuleName xSQLServer -Name xSQLServerSetup
+    Import-DSCResource -ModuleName xNetworking -ModuleVersion 5.3.0.0
+    Import-DsCResource -Module xWindowsUpdate -Name xHotfix -ModuleVersion 2.7.0.0
+    Import-DscResource -ModuleName xPendingReboot -ModuleVersion 0.3.0.0
+    Import-DSCResource -ModuleName xSQLServer -Name xSQLServerSetup -ModuleVersion 9.0.0.0
 
     Node $AllNodes.NodeName
     {

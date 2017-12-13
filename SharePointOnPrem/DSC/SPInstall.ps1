@@ -6,14 +6,13 @@ Configuration SPInstall
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DSCResource -ModuleName SharePointDSC
-    Import-DscResource -ModuleName xWebAdministration
-    Import-DscResource -ModuleName xPendingReboot
+    Import-DSCResource -ModuleName SharePointDSC -ModuleVersion 1.9.0.0
+    Import-DscResource -ModuleName xWebAdministration -ModuleVersion 1.19.0.0
+    Import-DscResource -ModuleName xPendingReboot -ModuleVersion 0.3.0.0
     #preinstalling
-    Import-DSCResource -ModuleName xNetworking
-    Import-DSCResource -ModuleName xSQLServer -Name xSQLServerAlias
-    Import-DscResource -ModuleName xCredSSP
-    Import-DSCResource -ModuleName SharePointDSC
+    Import-DSCResource -ModuleName xNetworking -ModuleVersion 5.3.0.0
+    Import-DSCResource -ModuleName xSQLServer -Name xSQLServerAlias -ModuleVersion 9.0.0.0
+    Import-DscResource -ModuleName xCredSSP -ModuleVersion 1.3.0.0
 
     $SPInstallationMediaPath = $configParameters.SPInstallationMediaPath
     $SPVersion = $configParameters.SPVersion;

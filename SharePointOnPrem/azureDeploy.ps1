@@ -354,7 +354,7 @@ function PrepareMachine ( $machineParameters ) {
             Remove-AzureRmVMCustomScriptExtension -ResourceGroupName $resourceGroupName -VMName $machineName -Name $fileName -Force | Out-Null;
         }
         if ( $machineParameters.DataDisks ) {
-            Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 13 -ParentId 1 -CurrentOperation "Preparing Windows 2012 on $machineName";            
+            Write-Progress -Activity "Preparing $machineName machine" -PercentComplete 13 -ParentId 1 -CurrentOperation "Preparing data disks on $machineName";            
             $containerName = "psscripts";
             $fileName = "initializedisks.ps1"
             Set-AzureRmCurrentStorageAccount -StorageAccountName $storageAccountName -ResourceGroupName $resourceGroupName | Out-Null;

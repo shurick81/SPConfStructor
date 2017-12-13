@@ -5,9 +5,9 @@ Configuration SP2013Prepare
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DSCResource -Module xSystemSecurity -Name xIEEsc
-    Import-DsCResource -Module xWindowsUpdate -Name xHotfix
-    Import-DscResource -ModuleName xPendingReboot
+    Import-DSCResource -Module xSystemSecurity -Name xIEEsc -ModuleVersion 1.2.0.0
+    Import-DsCResource -Module xWindowsUpdate -Name xHotfix -ModuleVersion 2.7.0.0
+    Import-DscResource -ModuleName xPendingReboot -ModuleVersion 0.3.0.0
 
     Node $AllNodes.NodeName
     {

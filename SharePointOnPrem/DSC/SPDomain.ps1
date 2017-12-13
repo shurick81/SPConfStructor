@@ -52,9 +52,9 @@ Configuration SPDomain
     $DomainName = $configParameters.DomainName;
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DscResource -ModuleName xPendingReboot
-    Import-DscResource -ModuleName xRemoteDesktopAdmin
-    Import-DscResource -ModuleName xActiveDirectory
+    Import-DscResource -ModuleName xPendingReboot -ModuleVersion 0.3.0.0
+    Import-DscResource -ModuleName xRemoteDesktopAdmin -ModuleVersion 1.1.0.0
+    Import-DscResource -ModuleName xActiveDirectory -ModuleVersion 2.16.0.0
     
     Node $AllNodes.NodeName
     {

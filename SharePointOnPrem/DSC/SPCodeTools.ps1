@@ -10,9 +10,9 @@ Configuration SPCodeTools
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile
-    Import-DSCResource -Module xSystemSecurity -Name xIEEsc
-    Import-DscResource -ModuleName cChoco
+    Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile -ModuleVersion 8.0.0.0
+    Import-DSCResource -Module xSystemSecurity -Name xIEEsc -ModuleVersion 1.2.0.0
+    Import-DscResource -ModuleName cChoco -ModuleVersion 2.3.1.0
 
     Node $AllNodes.NodeName
     {

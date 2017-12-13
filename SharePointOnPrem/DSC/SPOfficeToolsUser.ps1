@@ -9,8 +9,8 @@ Configuration SPOfficeToolsUser
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DscResource -ModuleName cChoco
-
+    Import-DscResource -ModuleName cChoco -ModuleVersion 2.3.1.0
+    
     Node $AllNodes.NodeName
     {
 

@@ -11,9 +11,9 @@ Configuration SQLLoadingInstallationFiles
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile
-    Import-DscResource -ModuleName xStorage
-
+    Import-DscResource -ModuleName xPSDesiredStateConfiguration -Name xRemoteFile -ModuleVersion 8.0.0.0
+    Import-DscResource -ModuleName xStorage -ModuleVersion 3.3.0.0
+    
     $SQLImageLocation = $systemParameters.SQLImageLocation
     $SPVersion = $configParameters.SPVersion;
     if ( $SPVersion -eq "2013" ) { $SQLVersion = "2014" } else { $SQLVersion = "2016" }

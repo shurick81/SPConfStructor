@@ -12,8 +12,8 @@ Configuration DomainClient
     $shortDomainName = $DomainName.Substring( 0, $DomainName.IndexOf( "." ) );
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DSCResource -ModuleName xDSCDomainJoin
-    Import-DSCResource -ModuleName xNetworking
+    Import-DSCResource -ModuleName xDSCDomainJoin -ModuleVersion 1.1
+    Import-DSCResource -ModuleName xNetworking -ModuleVersion 5.3.0.0
 
     Node $AllNodes.NodeName
     {        

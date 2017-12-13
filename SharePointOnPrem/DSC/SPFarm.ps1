@@ -42,10 +42,10 @@ Configuration SPFarm
     $webAppHostName = "SPWA_01.$DomainName";
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DSCResource -ModuleName xNetworking
-    Import-DSCResource -ModuleName xSQLServer -Name xSQLServerAlias
-    Import-DscResource -ModuleName xCredSSP
-    Import-DSCResource -ModuleName SharePointDSC
+    Import-DSCResource -ModuleName xNetworking -ModuleVersion 5.3.0.0
+    Import-DSCResource -ModuleName xSQLServer -Name xSQLServerAlias -ModuleVersion 9.0.0.0
+    Import-DscResource -ModuleName xCredSSP -ModuleVersion 1.3.0.0
+    Import-DSCResource -ModuleName SharePointDSC -ModuleVersion 1.9.0.0
 
     $SPMachines = $configParameters.Machines | ? { ( $_.Roles -contains "SharePoint" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
     $WFEMachines = $configParameters.Machines | ? { ( $_.Roles -contains "WFE" ) -or ( $_.Roles -contains "SingleServerFarm" ) } | % { $_.Name }
