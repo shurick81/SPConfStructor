@@ -251,6 +251,23 @@ $subnetId = $vnet.Subnets[0].Id;
 $storageAccounts = Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName
 $storageAccountName = $storageAccounts[0].StorageAccountName;
 
+function EnsureAvailabilitySet ( [string]$name )
+{
+    $availabilitySet = $null;
+    $AvailabilitySet = Get-AzureRmAvailabilitySet -ResourceGroupName $resourceGroupName -Name $name -ErrorAction Ignore;
+    if ( !$availabilitySet )
+    {
+        return New-AzureRmAvailabilitySet `
+        -Location $resourceGroupLocation `
+        -Name $name `
+        -ResourceGroupName $resourceGroupName `
+        -sku aligned `
+        -PlatformFaultDomainCount 2 `
+        -PlatformUpdateDomainCount 2
+    } else {
+        return $availabilitySet;
+    }
+}
 function CreateMachine ( $machineParameters ) {
     $machineName = $machineParameters.Name;
     Write-Host "$(Get-Date) Creating $machineName machine"
@@ -306,29 +323,31 @@ function CreateMachine ( $machineParameters ) {
     
     if ( $machineParameters.Roles -contains "AD" ) { $vmCredential = $ShortDomainAdminCredential } else { $vmCredential = $LocalAdminCredential }
 
+    if ( $machineParameters.AvailabilitySet )
+    {
+        $availabilitySetId = ( EnsureAvailabilitySet $machineParameters.AvailabilitySet ).id
+        $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize -AvailabilitySetId $availabilitySetId;
+    } else {
+        $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize;
+    }
+    $vmConfig = $vmConfig | Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential;
     $imageParameter = $machineParameters.Image;
     if ( $imageParameter -and ( $imageParameter -ne "" ) )
     {
         $image = $null;
         $image = Get-AzureRMImage -ResourceGroupName $imageResourceGroupName | ? { ( $_.Name -eq $imageName ) -and ( $_.Location -eq $resourceGroupLocation ) }
-        $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize | `
-            Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
-            Set-AzureRmVMSourceImage -Id $image.Id | `
-            Set-AzureRmVMOSDisk -CreateOption FromImage -StorageAccountType $vmStorageAccountType | `
-            Add-AzureRmVMNetworkInterface -Id $nic.Id
+        $vmConfig = $vmConfig | Set-AzureRmVMSourceImage -Id $image.Id;
     } else {
-        $vmConfig = New-AzureRmVMConfig -VMName $machineName -VMSize $VMSize | `
-            Set-AzureRmVMOperatingSystem -Windows -ComputerName $machineName -Credential $vmCredential | `
-            Set-AzureRmVMSourceImage -PublisherName $publisherName -Offer $offer -Skus $skus -Version latest | `
-            Set-AzureRmVMOSDisk -CreateOption FromImage -StorageAccountType $vmStorageAccountType | `
-            Add-AzureRmVMNetworkInterface -Id $nic.Id
-        if ( $machineParameters.DataDisks )
-        {
-            $lun = 0
-            $machineParameters.DataDisks | % {
-                $vmConfig = Add-AzureRmVMDataDisk -CreateOption Empty -Lun $lun -VM $vmConfig -DiskSizeInGB $_ -StorageAccountType $vmStorageAccountType;
-                $lun++;
-            }
+        $vmConfig = $vmConfig | Set-AzureRmVMSourceImage -PublisherName $publisherName -Offer $offer -Skus $skus -Version latest;
+    }
+    $vmConfig = $vmConfig | Set-AzureRmVMOSDisk -CreateOption FromImage -StorageAccountType $vmStorageAccountType | `
+        Add-AzureRmVMNetworkInterface -Id $nic.Id;
+    if ( $machineParameters.DataDisks )
+    {
+        $lun = 0
+        $machineParameters.DataDisks | % {
+            $vmConfig = Add-AzureRmVMDataDisk -CreateOption Empty -Lun $lun -VM $vmConfig -DiskSizeInGB $_ -StorageAccountType $vmStorageAccountType;
+            $lun++;
         }
     }
     New-AzureRmVM -ResourceGroupName $resourceGroupName -Location $resourceGroupLocation -VM $vmConfig | Out-Null;
